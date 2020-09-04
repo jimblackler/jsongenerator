@@ -10,5 +10,6 @@ repositories {
 dependencies {
     compile 'net.jimblackler:jsonschemafriend:0.3'
     compile 'org.json:json:20200518'
+    compile 'com.github.mifmif:generex:1.0.2'
     testCompile 'junit:junit:4.12'
 }

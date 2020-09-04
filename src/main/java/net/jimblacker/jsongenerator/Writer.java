@@ -16,11 +16,11 @@ import org.json.JSONObject;
 public class Writer {
   private final URI defaultMetaSchema = URI.create("http://json-schema.org/draft-07/schema#");
 
-  public void build(URI uri, Path out) throws GenerationException, IOException {
+  public void build(URI uri, Path out, Random random) throws GenerationException, IOException {
     SchemaStore schemaStore = new SchemaStore();
     Schema schema = schemaStore.loadSchema(uri, defaultMetaSchema);
 
-    Object obj = Generator.generate(new Random(), schema);
+    Object obj = Generator.generate(random, schema);
     try (BufferedWriter writer =
              new BufferedWriter(new FileWriter(out.toFile(), StandardCharsets.UTF_8))) {
       if (obj instanceof JSONObject) {
