@@ -1,14 +1,18 @@
 package net.jimblacker.jsongenerator;
 
+import com.mifmif.common.regex.Generex;
 import java.util.Collection;
+import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
 import java.util.Random;
 import java.util.Set;
 
-import com.mifmif.common.regex.Generex;
+import net.jimblackler.jsonschemafriend.Ecma262Pattern;
+import net.jimblackler.jsonschemafriend.GenerationException;
 import net.jimblackler.jsonschemafriend.ObjectSchema;
 import net.jimblackler.jsonschemafriend.Schema;
+import net.jimblackler.jsonschemafriend.SchemaStore;
 import net.jimblackler.jsonschemafriend.ValidationException;
 import org.json.JSONArray;
 import org.json.JSONObject;
@@ -16,8 +20,20 @@ import org.json.JSONObject;
 public class Generator {
   private static final int MAX_STRING_LENGTH = 60;
   private static final int MAX_ARRAY_LENGTH = 20;
-  public static Object generate(Random random, Schema schema) {
-    Object object = generateUnvalidated(random, schema);
+  private static final int MAX_PATTERN_PROPERTIES = 5;
+  private static final int MAX_ADDITIONAL_PROPERTIES = 5;
+  private static final int MAX_ADDITIONAL_PROPERTIES_KEY_LENGTH = 20;
+
+  private final Random random;
+  private final Schema anySchema;
+
+  public Generator(SchemaStore schemaStore, Random random) throws GenerationException {
+    this.random = random;
+    anySchema = schemaStore.loadSchema(true);
+  }
+
+  public Object generate(Schema schema) {
+    Object object = generateUnvalidated(schema);
     try {
       schema.validate(object);
       return object;
@@ -27,18 +43,18 @@ public class Generator {
     }
   }
 
-  private static Object generateUnvalidated(Random random, Schema schema) {
+  private Object generateUnvalidated(Schema schema) {
     JSONObject jsonObject = new JSONObject();
     ObjectSchema objectSchema = (ObjectSchema) schema;
 
     Collection<Schema> oneOf = objectSchema.getOneOf();
     if (oneOf != null && !oneOf.isEmpty()) {
-      return generateUnvalidated(random, randomElement(random, oneOf));
+      return generate(randomElement(random, oneOf));
     }
 
     Collection<Schema> anyOf = objectSchema.getAnyOf();
     if (anyOf != null && !anyOf.isEmpty()) {
-      return generateUnvalidated(random, randomElement(random, anyOf));
+      return generate(randomElement(random, anyOf));
     }
 
     Set<String> types = objectSchema.getTypes();
@@ -64,12 +80,12 @@ public class Generator {
         return value;
       }
       case "integer": {
-        int minimum = getInt(objectSchema.getMinimum(), -Integer.MAX_VALUE);
-        int maximum = getInt(objectSchema.getMaximum(), Integer.MAX_VALUE);
-        int value = random.nextInt(maximum - minimum) + minimum;
+        long minimum = getInt(objectSchema.getMinimum(), Integer.MIN_VALUE);
+        long maximum = getInt(objectSchema.getMaximum(), Integer.MAX_VALUE);
+        long value = Math.abs(random.nextLong()) % (maximum - minimum) + minimum;
         if (objectSchema.getMultipleOf() != null) {
           int multipleOf = objectSchema.getMultipleOf().intValue();
-          int multiples = value / multipleOf;
+          long multiples = value / multipleOf;
           value = multiples * multipleOf;
         }
 
@@ -77,29 +93,24 @@ public class Generator {
       }
       case "string": {
         List<Object> enums = objectSchema.getEnums();
-        if (enums == null) {
-
-          int minLength = getInt(objectSchema.getMinLength(), 0);
-          int maxLength = getInt(objectSchema.getMaxLength(), Integer.MAX_VALUE);
-          int useMaxLength = Math.min(maxLength, minLength + MAX_STRING_LENGTH);
-          int length = random.nextInt(useMaxLength - minLength) + minLength + 1;
-          String pattern = objectSchema.getPattern();
-          if (pattern != null) {
-            if (pattern.startsWith("^")) {
-              pattern = pattern.substring("^".length());
-            }
-            Generex generex = new Generex(pattern, random);
-            return generex.random(minLength, maxLength);
-          }
-
-          StringBuilder stringBuilder = new StringBuilder();
-          for (int idx = 0; idx != length; idx++) {
-            stringBuilder.append((char) (random.nextInt(128 - 32) + 32));
-          }
-          return stringBuilder.toString();
-        } else {
+        if (enums != null) {
           return randomElement(random, enums);
         }
+        int minLength = getInt(objectSchema.getMinLength(), 0);
+        int maxLength = getInt(objectSchema.getMaxLength(), Integer.MAX_VALUE);
+        int useMaxLength = Math.min(maxLength, minLength + MAX_STRING_LENGTH);
+        int length = random.nextInt(useMaxLength - minLength) + minLength + 1;
+        Ecma262Pattern pattern1 = objectSchema.getPattern();
+        String pattern = pattern1 == null ? null : pattern1.toString();
+        if (pattern != null) {
+          if (pattern.startsWith("^")) {
+            pattern = pattern.substring("^".length());
+          }
+          Generex generex = new Generex(pattern, random);
+          return generex.random(minLength, maxLength);
+        }
+
+        return randomString(length);
       }
       case "array": {
         JSONArray jsonArray = new JSONArray();
@@ -109,7 +120,11 @@ public class Generator {
         int length = random.nextInt(useMaxItems - minItems) + minItems + 1;
         Collection<Schema> items = objectSchema.getItems();
         for (int idx = 0; idx != length; idx++) {
-          jsonArray.put(generate(random, randomElement(random, items)));
+          if (items.isEmpty()) {
+            jsonArray.put(generate(anySchema));
+          } else {
+            jsonArray.put(generate(randomElement(random, items)));
+          }
         }
         return jsonArray;
       }
@@ -120,7 +135,7 @@ public class Generator {
           String property = entry.getKey();
           if (requiredProperties.contains(property) || random.nextBoolean()) {
             Schema schema1 = entry.getValue();
-            Object object = generateUnvalidated(random, schema1);
+            Object object = generateUnvalidated(schema1);
             try {
               schema1.validate(object);
 
@@ -131,6 +146,39 @@ public class Generator {
           }
         }
 
+        Collection<Ecma262Pattern> patternPropertiesPatterns =
+            objectSchema.getPatternPropertiesPatterns();
+        if (patternPropertiesPatterns != null && !patternPropertiesPatterns.isEmpty()) {
+          Collection<Schema> patternPropertiesSchema = objectSchema.getPatternPropertiesSchema();
+          int addPatternProperties = random.nextInt(MAX_PATTERN_PROPERTIES);
+          for (int idx = 0; idx != addPatternProperties; idx++) {
+            int index = random.nextInt(patternPropertiesPatterns.size());
+            Iterator<Ecma262Pattern> it0 = patternPropertiesPatterns.iterator();
+            Iterator<Schema> it1 = patternPropertiesSchema.iterator();
+            while (index > 0) {
+              it0.next();
+              it1.next();
+              index--;
+            }
+            String pattern = it0.next().toString();
+
+            if (pattern.startsWith("^")) {
+              pattern = pattern.substring("^".length());
+            }
+            Generex generex = new Generex(pattern, random);
+            jsonObject.put(generex.random(), generate(it1.next()));
+          }
+        }
+
+        Schema additionalProperties = objectSchema.getAdditionalProperties();
+        if (additionalProperties != null) {
+          int addPatternProperties = random.nextInt(MAX_ADDITIONAL_PROPERTIES);
+          for (int idx = 0; idx != addPatternProperties; idx++) {
+            jsonObject.put(
+                randomString(MAX_ADDITIONAL_PROPERTIES_KEY_LENGTH), generate(additionalProperties));
+          }
+        }
+
         return jsonObject;
       }
       default:
@@ -138,8 +186,20 @@ public class Generator {
     }
   }
 
+  private String randomString(int length) {
+    StringBuilder stringBuilder = new StringBuilder();
+    for (int idx = 0; idx != length; idx++) {
+      stringBuilder.append((char) (random.nextInt(128 - 32) + 32));
+    }
+    return stringBuilder.toString();
+  }
+
   public static <T> T randomElement(Random random, Collection<T> collection) {
-    int selection = random.nextInt(collection.size());
+    int size = collection.size();
+    if (size == 0) {
+      throw new IllegalStateException();
+    }
+    int selection = random.nextInt(size);
     for (T element : collection) {
       if (selection == 0) {
         return element;

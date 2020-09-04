@@ -20,12 +20,12 @@ public class Writer {
     SchemaStore schemaStore = new SchemaStore();
     Schema schema = schemaStore.loadSchema(uri, defaultMetaSchema);
 
-    Object obj = Generator.generate(random, schema);
+    Object obj = new Generator(schemaStore, random).generate(schema);
     try (BufferedWriter writer =
              new BufferedWriter(new FileWriter(out.toFile(), StandardCharsets.UTF_8))) {
       if (obj instanceof JSONObject) {
         writer.write(((JSONObject) obj).toString(2));
-      } else {
+      } else if (obj instanceof JSONArray) {
         writer.write(((JSONArray) obj).toString(2));
       }
     }
