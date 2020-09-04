@@ -1,0 +1,13 @@
+plugins {
+    id 'java'
+}
+
+repositories {
+    mavenLocal()
+    mavenCentral()
+}
+
+dependencies {
+    compile 'net.jimblackler:jsonschemafriend:0.1'
+    testCompile 'junit:junit:4.12'
+}

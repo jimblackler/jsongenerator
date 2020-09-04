@@ -1,0 +1,22 @@
+package net.jimblackler.jsongenerator;
+
+import java.io.IOException;
+import java.net.URISyntaxException;
+import java.nio.file.FileSystem;
+import java.nio.file.FileSystems;
+import java.nio.file.Path;
+import net.jimblacker.jsongenerator.Generator;
+import net.jimblackler.jsonschemafriend.GenerationException;
+
+public class Test {
+  public static final FileSystem FILE_SYSTEM = FileSystems.getDefault();
+
+  public static void main(String[] args)
+      throws URISyntaxException, GenerationException, IOException {
+    Path outDir = FILE_SYSTEM.getPath("out");
+    Path base = FILE_SYSTEM.getPath("/examples");
+    Path file = base.resolve("docs").resolve("schemas").resolve("person.schema.json");
+    Path out = outDir.resolve("example.json");
+    new Generator().build(Test.class.getResource(file.toString()).toURI(), out);
+  }
+}
