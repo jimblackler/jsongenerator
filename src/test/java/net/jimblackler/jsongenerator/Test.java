@@ -5,7 +5,7 @@ import java.net.URISyntaxException;
 import java.nio.file.FileSystem;
 import java.nio.file.FileSystems;
 import java.nio.file.Path;
-import net.jimblacker.jsongenerator.Generator;
+import net.jimblacker.jsongenerator.Writer;
 import net.jimblackler.jsonschemafriend.GenerationException;
 
 public class Test {
@@ -15,8 +15,8 @@ public class Test {
       throws URISyntaxException, GenerationException, IOException {
     Path outDir = FILE_SYSTEM.getPath("out");
     Path base = FILE_SYSTEM.getPath("/examples");
-    Path file = base.resolve("docs").resolve("schemas").resolve("person.schema.json");
+    Path file = base.resolve("docs").resolve("schemas").resolve("people.schema.json");
     Path out = outDir.resolve("example.json");
-    new Generator().build(Test.class.getResource(file.toString()).toURI(), out);
+    new Writer().build(Test.class.getResource(file.toString()).toURI(), out);
   }
 }
