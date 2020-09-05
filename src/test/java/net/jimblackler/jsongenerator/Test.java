@@ -6,7 +6,6 @@ import java.nio.file.FileSystem;
 import java.nio.file.FileSystems;
 import java.nio.file.Path;
 import java.util.Random;
-
 import net.jimblacker.jsongenerator.Writer;
 import net.jimblackler.jsonschemafriend.GenerationException;
 
