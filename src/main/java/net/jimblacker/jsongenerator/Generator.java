@@ -181,6 +181,9 @@ public class Generator {
           } else if (it != null && it.hasNext()) {
             jsonArray.put(generate(it.next()));
           } else if (additionalItemsSchema != null) {
+            if (additionalItemsSchema.isFalse()) {
+              break;
+            }
             jsonArray.put(generate(additionalItemsSchema));
           } else {
             jsonArray.put(generate(anySchema));
