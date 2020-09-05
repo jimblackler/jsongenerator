@@ -4,7 +4,6 @@ import java.net.URLDecoder;
 import java.net.URLEncoder;
 import java.util.ArrayList;
 import java.util.Collection;
-import java.util.HashSet;
 import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
@@ -20,8 +19,7 @@ import org.json.JSONObject;
 public class Generator {
   private static final int MAX_STRING_LENGTH = 60;
   private static final int MAX_ARRAY_LENGTH = 20;
-  private static final int MAX_PATTERN_PROPERTIES = 5;
-  private static final int MAX_ADDITIONAL_PROPERTIES = 5;
+  private static final int MAXIMUM_TARGET_PROPERTIES = 10;
   private static final int MAX_ADDITIONAL_PROPERTIES_KEY_LENGTH = 20;
   private final Configuration configuration;
   private final Random random;
@@ -104,14 +102,14 @@ public class Generator {
   private Object generateUnvalidated(Schema schema) {
     JSONObject jsonObject = new JSONObject();
 
-    Collection<Schema> oneOf = schema.getOneOf();
-    if (oneOf != null && !oneOf.isEmpty()) {
-      return generate(randomElement(random, oneOf));
-    }
-
     Collection<Schema> anyOf = schema.getAnyOf();
     if (anyOf != null && !anyOf.isEmpty()) {
       return generate(randomElement(random, anyOf));
+    }
+
+    Collection<Schema> oneOf = schema.getOneOf();
+    if (oneOf != null && !oneOf.isEmpty()) {
+      return generate(randomElement(random, oneOf));
     }
 
     Collection<String> types =
@@ -130,7 +128,8 @@ public class Generator {
         return random.nextBoolean();
       }
       case "number": {
-        double minimum = getDouble(schema.getMinimum(), -Double.MAX_VALUE);
+        double minimum = getDouble(
+            schema.getMinimum(), getDouble(schema.getExclusiveMinimum(), -Double.MAX_VALUE));
         double maximum = getDouble(schema.getMaximum(), Double.MAX_VALUE);
         double value = random.nextDouble() % (maximum - minimum) + minimum;
         if (schema.getMultipleOf() != null) {
@@ -207,10 +206,11 @@ public class Generator {
 
         Collection<Ecma262Pattern> patternPropertiesPatterns =
             schema.getPatternPropertiesPatterns();
-        if (patternPropertiesPatterns != null && !patternPropertiesPatterns.isEmpty()) {
-          Collection<Schema> patternPropertiesSchema = schema.getPatternPropertiesSchema();
-          int addPatternProperties = random.nextInt(MAX_PATTERN_PROPERTIES);
-          for (int idx = 0; idx != addPatternProperties; idx++) {
+        Schema additionalProperties = schema.getAdditionalProperties();
+        int targetProperties = random.nextInt(MAXIMUM_TARGET_PROPERTIES);
+        while (jsonObject.keySet().size() < targetProperties) {
+          if (patternPropertiesPatterns != null && !patternPropertiesPatterns.isEmpty()) {
+            Collection<Schema> patternPropertiesSchema = schema.getPatternPropertiesSchema();
             int index = random.nextInt(patternPropertiesPatterns.size());
             Iterator<Ecma262Pattern> it0 = patternPropertiesPatterns.iterator();
             Iterator<Schema> it1 = patternPropertiesSchema.iterator();
@@ -226,16 +226,17 @@ public class Generator {
             }
 
             String str = PatternReverser.reverse(pattern, 1, Integer.MAX_VALUE, random);
+            if (jsonObject.has(str)) {
+              // Probably an inflexible pattern. Let's just give up.
+              break;
+            }
             jsonObject.put(str, generate(it1.next()));
-          }
-        }
 
-        Schema additionalProperties = schema.getAdditionalProperties();
-        if (additionalProperties != null && !additionalProperties.isFalse()) {
-          int addPatternProperties = random.nextInt(MAX_ADDITIONAL_PROPERTIES);
-          for (int idx = 0; idx != addPatternProperties; idx++) {
+          } else if (additionalProperties != null && !additionalProperties.isFalse()) {
             jsonObject.put(
                 randomString(MAX_ADDITIONAL_PROPERTIES_KEY_LENGTH), generate(additionalProperties));
+          } else {
+            break;
           }
         }
 
