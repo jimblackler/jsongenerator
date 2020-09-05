@@ -1,16 +1,15 @@
 package net.jimblacker.jsongenerator;
 
 import com.mifmif.common.regex.Generex;
+import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
 import java.util.Random;
 import java.util.Set;
-
 import net.jimblackler.jsonschemafriend.Ecma262Pattern;
 import net.jimblackler.jsonschemafriend.GenerationException;
-import net.jimblackler.jsonschemafriend.ObjectSchema;
 import net.jimblackler.jsonschemafriend.Schema;
 import net.jimblackler.jsonschemafriend.SchemaStore;
 import net.jimblackler.jsonschemafriend.ValidationException;
@@ -34,45 +33,53 @@ public class Generator {
 
   public Object generate(Schema schema) {
     Object object = generateUnvalidated(schema);
-    try {
-      schema.validate(object);
-      return object;
-    } catch (ValidationException e) {
-      e.printStackTrace();
-      return null;
+    int tries = 5;
+    for (int idx = 0; idx != tries; idx++) {
+      try {
+        schema.validate(object);
+        return object;
+      } catch (ValidationException e) {
+        if (idx == tries - 1) {
+          e.printStackTrace();
+          return null;
+        }
+      }
     }
+    return null;
   }
 
   private Object generateUnvalidated(Schema schema) {
     JSONObject jsonObject = new JSONObject();
-    ObjectSchema objectSchema = (ObjectSchema) schema;
 
-    Collection<Schema> oneOf = objectSchema.getOneOf();
+    Collection<Schema> oneOf = schema.getOneOf();
     if (oneOf != null && !oneOf.isEmpty()) {
       return generate(randomElement(random, oneOf));
     }
 
-    Collection<Schema> anyOf = objectSchema.getAnyOf();
+    Collection<Schema> anyOf = schema.getAnyOf();
     if (anyOf != null && !anyOf.isEmpty()) {
       return generate(randomElement(random, anyOf));
     }
 
-    Set<String> types = objectSchema.getTypes();
+    Set<String> types = schema.getTypes();
     if (types.isEmpty()) {
       throw new IllegalStateException("No types");
     }
     String type = randomElement(random, types);
-
+    List<Object> enums = schema.getEnums();
+    if (enums != null) {
+      return randomElement(random, enums);
+    }
     switch (type) {
       case "boolean": {
         return random.nextBoolean();
       }
       case "number": {
-        double minimum = getDouble(objectSchema.getMinimum(), -Double.MAX_VALUE);
-        double maximum = getDouble(objectSchema.getMaximum(), Double.MAX_VALUE);
+        double minimum = getDouble(schema.getMinimum(), -Double.MAX_VALUE);
+        double maximum = getDouble(schema.getMaximum(), Double.MAX_VALUE);
         double value = random.nextDouble() % (maximum - minimum) + minimum;
-        if (objectSchema.getMultipleOf() != null) {
-          double multipleOf = objectSchema.getMultipleOf().doubleValue();
+        if (schema.getMultipleOf() != null) {
+          double multipleOf = schema.getMultipleOf().doubleValue();
           int multiples = (int) (value / multipleOf);
           value = multiples * multipleOf;
         }
@@ -80,11 +87,11 @@ public class Generator {
         return value;
       }
       case "integer": {
-        long minimum = getInt(objectSchema.getMinimum(), Integer.MIN_VALUE);
-        long maximum = getInt(objectSchema.getMaximum(), Integer.MAX_VALUE);
+        long minimum = getInt(schema.getMinimum(), Integer.MIN_VALUE);
+        long maximum = getInt(schema.getMaximum(), Integer.MAX_VALUE);
         long value = Math.abs(random.nextLong()) % (maximum - minimum) + minimum;
-        if (objectSchema.getMultipleOf() != null) {
-          int multipleOf = objectSchema.getMultipleOf().intValue();
+        if (schema.getMultipleOf() != null) {
+          int multipleOf = schema.getMultipleOf().intValue();
           long multiples = value / multipleOf;
           value = multiples * multipleOf;
         }
@@ -92,15 +99,11 @@ public class Generator {
         return value;
       }
       case "string": {
-        List<Object> enums = objectSchema.getEnums();
-        if (enums != null) {
-          return randomElement(random, enums);
-        }
-        int minLength = getInt(objectSchema.getMinLength(), 0);
-        int maxLength = getInt(objectSchema.getMaxLength(), Integer.MAX_VALUE);
+        int minLength = getInt(schema.getMinLength(), 0);
+        int maxLength = getInt(schema.getMaxLength(), Integer.MAX_VALUE);
         int useMaxLength = Math.min(maxLength, minLength + MAX_STRING_LENGTH);
         int length = random.nextInt(useMaxLength - minLength) + minLength + 1;
-        Ecma262Pattern pattern1 = objectSchema.getPattern();
+        Ecma262Pattern pattern1 = schema.getPattern();
         String pattern = pattern1 == null ? null : pattern1.toString();
         if (pattern != null) {
           if (pattern.startsWith("^")) {
@@ -114,11 +117,11 @@ public class Generator {
       }
       case "array": {
         JSONArray jsonArray = new JSONArray();
-        int minItems = getInt(objectSchema.getMinItems(), 0);
-        int maxItems = getInt(objectSchema.getMaxItems(), Integer.MAX_VALUE);
+        int minItems = getInt(schema.getMinItems(), 0);
+        int maxItems = getInt(schema.getMaxItems(), Integer.MAX_VALUE);
         int useMaxItems = Math.min(maxItems, minItems + MAX_ARRAY_LENGTH);
         int length = random.nextInt(useMaxItems - minItems) + minItems + 1;
-        Collection<Schema> items = objectSchema.getItems();
+        Collection<Schema> items = schema.getItems();
         for (int idx = 0; idx != length; idx++) {
           if (items.isEmpty()) {
             jsonArray.put(generate(anySchema));
@@ -129,27 +132,25 @@ public class Generator {
         return jsonArray;
       }
       case "object": {
-        Map<String, Schema> properties = objectSchema.getProperties();
-        Collection<String> requiredProperties = objectSchema.getRequiredProperties();
-        for (Map.Entry<String, Schema> entry : properties.entrySet()) {
-          String property = entry.getKey();
+        Map<String, Schema> properties = schema.getProperties();
+        Collection<String> requiredProperties = schema.getRequiredProperties();
+        Collection<String> allProperties = new ArrayList<>();
+        allProperties.addAll(requiredProperties);
+        allProperties.addAll(properties.keySet());
+        for (String property : allProperties) {
           if (requiredProperties.contains(property) || random.nextBoolean()) {
-            Schema schema1 = entry.getValue();
-            Object object = generateUnvalidated(schema1);
-            try {
-              schema1.validate(object);
-
-              jsonObject.put(property, object);
-            } catch (ValidationException e) {
-              e.printStackTrace();
+            Schema schema1 = properties.get(property);
+            if (schema1 == null) {
+              schema1 = anySchema;
             }
+            jsonObject.put(property, generate(schema1));
           }
         }
 
         Collection<Ecma262Pattern> patternPropertiesPatterns =
-            objectSchema.getPatternPropertiesPatterns();
+            schema.getPatternPropertiesPatterns();
         if (patternPropertiesPatterns != null && !patternPropertiesPatterns.isEmpty()) {
-          Collection<Schema> patternPropertiesSchema = objectSchema.getPatternPropertiesSchema();
+          Collection<Schema> patternPropertiesSchema = schema.getPatternPropertiesSchema();
           int addPatternProperties = random.nextInt(MAX_PATTERN_PROPERTIES);
           for (int idx = 0; idx != addPatternProperties; idx++) {
             int index = random.nextInt(patternPropertiesPatterns.size());
@@ -170,8 +171,8 @@ public class Generator {
           }
         }
 
-        Schema additionalProperties = objectSchema.getAdditionalProperties();
-        if (additionalProperties != null) {
+        Schema additionalProperties = schema.getAdditionalProperties();
+        if (additionalProperties != null && !additionalProperties.isFalse()) {
           int addPatternProperties = random.nextInt(MAX_ADDITIONAL_PROPERTIES);
           for (int idx = 0; idx != addPatternProperties; idx++) {
             jsonObject.put(
