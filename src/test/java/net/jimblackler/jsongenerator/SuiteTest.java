@@ -114,7 +114,7 @@ public class SuiteTest {
         System.out.println();
 
         Object generated = new Generator(() -> false, schemaStore, new Random(1)).generate(schema1);
-        // TODO: make sure it also passes everit
+
         if (generated instanceof JSONObject) {
           System.out.println(((JSONObject) generated).toString(2));
         } else if (generated instanceof JSONArray) {
