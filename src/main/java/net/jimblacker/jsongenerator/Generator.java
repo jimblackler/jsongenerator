@@ -1,18 +1,19 @@
 package net.jimblacker.jsongenerator;
 
-import com.mifmif.common.regex.Generex;
+import java.net.URLDecoder;
+import java.net.URLEncoder;
 import java.util.ArrayList;
 import java.util.Collection;
+import java.util.HashSet;
 import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
 import java.util.Random;
-import java.util.Set;
 import net.jimblackler.jsonschemafriend.Ecma262Pattern;
 import net.jimblackler.jsonschemafriend.GenerationException;
 import net.jimblackler.jsonschemafriend.Schema;
 import net.jimblackler.jsonschemafriend.SchemaStore;
-import net.jimblackler.jsonschemafriend.ValidationException;
+import net.jimblackler.jsonschemafriend.ValidationError;
 import org.json.JSONArray;
 import org.json.JSONObject;
 
@@ -22,28 +23,80 @@ public class Generator {
   private static final int MAX_PATTERN_PROPERTIES = 5;
   private static final int MAX_ADDITIONAL_PROPERTIES = 5;
   private static final int MAX_ADDITIONAL_PROPERTIES_KEY_LENGTH = 20;
-
+  private final Configuration configuration;
   private final Random random;
   private final Schema anySchema;
 
-  public Generator(SchemaStore schemaStore, Random random) throws GenerationException {
+  public Generator(Configuration configuration, SchemaStore schemaStore, Random random)
+      throws GenerationException {
+    this.configuration = configuration;
     this.random = random;
     anySchema = schemaStore.loadSchema(true);
   }
 
+  public static <T> T randomElement(Random random, Collection<T> collection) {
+    int size = collection.size();
+    if (size == 0) {
+      throw new IllegalStateException();
+    }
+    int selection = random.nextInt(size);
+    for (T element : collection) {
+      if (selection == 0) {
+        return element;
+      }
+      selection--;
+    }
+    throw new IllegalStateException();
+  }
+
+  private static int getInt(Number number, int _default) {
+    if (number == null) {
+      return _default;
+    }
+    return number.intValue();
+  }
+
+  private static double getDouble(Number number, double _default) {
+    if (number == null) {
+      return _default;
+    }
+    return number.doubleValue();
+  }
+
   public Object generate(Schema schema) {
+    int seed = random.nextInt();
+    random.setSeed(seed);
+
     Object object = generateUnvalidated(schema);
-    int tries = 5;
+    int tries = 1;
     for (int idx = 0; idx != tries; idx++) {
-      try {
-        schema.validate(object);
-        return object;
-      } catch (ValidationException e) {
+      Collection<ValidationError> errors = new ArrayList<>();
+      schema.validate(object, errors::add);
+      if (!errors.isEmpty()) {
+        if (idx == 0) {
+          System.out.println("Object:");
+          if (object instanceof JSONObject) {
+            System.out.println(((JSONObject) object).toString(2));
+          } else if (object instanceof JSONArray) {
+            System.out.println(((JSONArray) object).toString(2));
+          } else {
+            System.out.println(object);
+          }
+          System.out.println();
+          for (ValidationError error : errors) {
+            System.out.println(error);
+          }
+          random.setSeed(seed);
+          Object object2 = generateUnvalidated(schema);
+        }
         if (idx == tries - 1) {
-          e.printStackTrace();
+          //          for (ValidationError error : errors) {
+          //            System.out.println(error);
+          //          }
           return null;
         }
       }
+      return object;
     }
     return null;
   }
@@ -61,7 +114,9 @@ public class Generator {
       return generate(randomElement(random, anyOf));
     }
 
-    Set<String> types = schema.getTypes();
+    Collection<String> types =
+        configuration.isExploitAmbiguousTypes() ? schema.getExplicitTypes() : schema.getTypes();
+
     if (types.isEmpty()) {
       throw new IllegalStateException("No types");
     }
@@ -106,11 +161,7 @@ public class Generator {
         Ecma262Pattern pattern1 = schema.getPattern();
         String pattern = pattern1 == null ? null : pattern1.toString();
         if (pattern != null) {
-          if (pattern.startsWith("^")) {
-            pattern = pattern.substring("^".length());
-          }
-          Generex generex = new Generex(pattern, random);
-          return generex.random(minLength, maxLength);
+          return PatternReverser.reverse(pattern, minLength, maxLength, random);
         }
 
         return randomString(length);
@@ -121,12 +172,19 @@ public class Generator {
         int maxItems = getInt(schema.getMaxItems(), Integer.MAX_VALUE);
         int useMaxItems = Math.min(maxItems, minItems + MAX_ARRAY_LENGTH);
         int length = random.nextInt(useMaxItems - minItems) + minItems + 1;
-        Collection<Schema> items = schema.getItems();
+        Collection<Schema> itemsTuple = schema.getItemsTuple();
+        Schema items = schema.getItems();
+        Schema additionalItemsSchema = schema.getAdditionalItems();
+        Iterator<Schema> it = itemsTuple == null ? null : itemsTuple.iterator();
         for (int idx = 0; idx != length; idx++) {
-          if (items.isEmpty()) {
-            jsonArray.put(generate(anySchema));
+          if (items != null) {
+            jsonArray.put(generate(items));
+          } else if (it != null && it.hasNext()) {
+            jsonArray.put(generate(it.next()));
+          } else if (additionalItemsSchema != null) {
+            jsonArray.put(generate(additionalItemsSchema));
           } else {
-            jsonArray.put(generate(randomElement(random, items)));
+            jsonArray.put(generate(anySchema));
           }
         }
         return jsonArray;
@@ -166,8 +224,9 @@ public class Generator {
             if (pattern.startsWith("^")) {
               pattern = pattern.substring("^".length());
             }
-            Generex generex = new Generex(pattern, random);
-            jsonObject.put(generex.random(), generate(it1.next()));
+
+            String str = PatternReverser.reverse(pattern, 1, Integer.MAX_VALUE, random);
+            jsonObject.put(str, generate(it1.next()));
           }
         }
 
@@ -182,6 +241,9 @@ public class Generator {
 
         return jsonObject;
       }
+      case "null": {
+        return null;
+      }
       default:
         throw new IllegalStateException("Unknown type: " + type);
     }
@@ -190,37 +252,14 @@ public class Generator {
   private String randomString(int length) {
     StringBuilder stringBuilder = new StringBuilder();
     for (int idx = 0; idx != length; idx++) {
-      stringBuilder.append((char) (random.nextInt(128 - 32) + 32));
+      stringBuilder.append((char) random.nextInt());
     }
-    return stringBuilder.toString();
+    // We don't aim to handle strings that won't survive URL encoding with standard methods.
+    String urlEncoded = URLEncoder.encode(stringBuilder.toString());
+    return URLDecoder.decode(urlEncoded);
   }
 
-  public static <T> T randomElement(Random random, Collection<T> collection) {
-    int size = collection.size();
-    if (size == 0) {
-      throw new IllegalStateException();
-    }
-    int selection = random.nextInt(size);
-    for (T element : collection) {
-      if (selection == 0) {
-        return element;
-      }
-      selection--;
-    }
-    throw new IllegalStateException();
-  }
-
-  private static int getInt(Number number, int _default) {
-    if (number == null) {
-      return _default;
-    }
-    return number.intValue();
-  }
-
-  private static double getDouble(Number number, double _default) {
-    if (number == null) {
-      return _default;
-    }
-    return number.doubleValue();
+  public interface Configuration {
+    boolean isExploitAmbiguousTypes();
   }
 }
