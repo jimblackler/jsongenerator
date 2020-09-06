@@ -102,11 +102,19 @@ public class Generator {
   private Object generateUnvalidated(Schema schema) {
     JSONObject jsonObject = new JSONObject();
 
+    // Naive.
+    Collection<Schema> allOf = schema.getAllOf();
+    if (allOf != null && !allOf.isEmpty()) {
+      return generate(randomElement(random, allOf));
+    }
+
+    // Naive.
     Collection<Schema> anyOf = schema.getAnyOf();
     if (anyOf != null && !anyOf.isEmpty()) {
       return generate(randomElement(random, anyOf));
     }
 
+    // Naive.
     Collection<Schema> oneOf = schema.getOneOf();
     if (oneOf != null && !oneOf.isEmpty()) {
       return generate(randomElement(random, oneOf));
