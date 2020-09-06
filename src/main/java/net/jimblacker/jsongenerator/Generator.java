@@ -5,6 +5,7 @@ import java.net.URLEncoder;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.HashMap;
+import java.util.HashSet;
 import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
@@ -113,7 +114,13 @@ public class Generator {
     }
 
     Collection<String> types =
-        configuration.isExploitAmbiguousTypes() ? schema.getExplicitTypes() : schema.getTypes();
+        configuration.isPedanticTypes() ? schema.getExplicitTypes() : schema.getTypes();
+
+    Schema contains = schema.getContains();
+    if (contains != null && contains.isFalse()) {
+      types = new HashSet<>(schema.getNonProhibitedTypes());
+      types.remove("array");
+    }
 
     if (types.isEmpty()) {
       throw new IllegalStateException("No types");
@@ -184,17 +191,27 @@ public class Generator {
         Schema items = schema.getItems();
         Schema additionalItemsSchema = schema.getAdditionalItems();
         Iterator<Schema> it = itemsTuple == null ? null : itemsTuple.iterator();
-        while (schemas.size() < length) {
-          if (items != null && !items.isFalse()) {
-            schemas.add(items);
-            continue;
-          }
+
+        while (schemas.size() < length || contains != null) {
           if (it != null && it.hasNext()) {
             Schema next = it.next();
             if (next.isFalse()) {
               break;
             }
             schemas.add(next);
+            continue;
+          }
+          // Naive 'contains' handling.
+          if (contains != null && random.nextBoolean()) {
+            schemas.add(contains);
+            contains = null;
+            continue;
+          }
+          if (items != null) {
+            if (items.isFalse()) {
+              break;
+            }
+            schemas.add(items);
             continue;
           }
           if (additionalItemsSchema != null) {
@@ -207,9 +224,15 @@ public class Generator {
           schemas.add(anySchema);
         }
 
+        boolean uniqueItems = schema.isUniqueItems();
+        Collection<Object> alreadyIncluded = new HashSet<>();
         JSONArray jsonArray = new JSONArray();
         for (Schema schema1 : schemas) {
-          jsonArray.put(generate(schema1, (maxTreeSize - 1) / length));
+          Object value = generate(schema1, (maxTreeSize - 1) / length);
+          if (uniqueItems && !alreadyIncluded.add(value)) {
+            continue;
+          }
+          jsonArray.put(value);
         }
         return jsonArray;
       }
@@ -286,8 +309,19 @@ public class Generator {
 
         JSONObject jsonObject = new JSONObject();
         for (Map.Entry<String, Schema> entries : schemas.entrySet()) {
-          jsonObject.put(entries.getKey(),
-              generate(entries.getValue(), (maxTreeSize - 1) / schemas.entrySet().size()));
+          String key = entries.getKey();
+          if (jsonObject.has(key)) {
+            throw new IllegalStateException();
+          }
+          int size = jsonObject.keySet().size();
+          jsonObject.put(
+              key, generate(entries.getValue(), (maxTreeSize - 1) / schemas.entrySet().size()));
+          if (jsonObject.keySet().size() != size + 1) {
+            throw new IllegalStateException();
+          }
+        }
+        if (schemas.entrySet().size() != jsonObject.keySet().size()) {
+          throw new IllegalStateException();
         }
         return jsonObject;
       }
@@ -310,6 +344,6 @@ public class Generator {
   }
 
   public interface Configuration {
-    boolean isExploitAmbiguousTypes();
+    boolean isPedanticTypes();
   }
 }
