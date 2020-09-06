@@ -122,12 +122,17 @@ public class Generator {
     }
 
     Collection<String> types =
-        configuration.isPedanticTypes() ? schema.getExplicitTypes() : schema.getTypes();
+        configuration.isPedanticTypes() ? schema.getNonProhibitedTypes() : schema.getTypes();
 
     Schema contains = schema.getContains();
     if (contains != null && contains.isFalse()) {
       types = new HashSet<>(schema.getNonProhibitedTypes());
       types.remove("array");
+    }
+
+    if (!configuration.isGenerateNulls()) {
+      types = new HashSet<>(schema.getNonProhibitedTypes());
+      types.remove("null");
     }
 
     if (types.isEmpty()) {
@@ -372,5 +377,6 @@ public class Generator {
 
   public interface Configuration {
     boolean isPedanticTypes();
+    boolean isGenerateNulls();
   }
 }

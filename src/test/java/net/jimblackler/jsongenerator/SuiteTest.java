@@ -127,8 +127,17 @@ public class SuiteTest {
         }
         System.out.println();
 
-        Object generated =
-            new Generator(() -> false, schemaStore, new Random(1)).generate(schema1, 500);
+        Object generated = new Generator(new Generator.Configuration() {
+          @Override
+          public boolean isPedanticTypes() {
+            return false;
+          }
+
+          @Override
+          public boolean isGenerateNulls() {
+            return true;
+          }
+        }, schemaStore, new Random(1)).generate(schema1, 500);
 
         if (generated instanceof JSONObject) {
           System.out.println(((JSONObject) generated).toString(2));
@@ -140,7 +149,7 @@ public class SuiteTest {
         validate(schema1, generated);
 
         // Does it also pass Everit?
-        if (false) // Reenable when there's a 'non null' option: Everit doesn't like null.
+        if (false)
           if (schema instanceof JSONObject) {
             Schema everitSchema = SchemaLoader.load((JSONObject) schema, url -> {
               url = url.replace("http://localhost:1234", resource.toString());
