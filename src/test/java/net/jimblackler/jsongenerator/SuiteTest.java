@@ -1,5 +1,6 @@
 package net.jimblackler.jsongenerator;
 
+import static net.jimblackler.jsonschemafriend.Validator.validate;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.fail;
 import static org.junit.jupiter.api.DynamicContainer.dynamicContainer;
@@ -136,7 +137,7 @@ public class SuiteTest {
         } else {
           System.out.println(generated);
         }
-        schema1.validate(generated);
+        validate(schema1, generated);
 
         // Does it also pass Everit?
         if (false) // Reenable when there's a 'non null' option: Everit doesn't like null.
@@ -183,7 +184,7 @@ public class SuiteTest {
             System.out.println();
 
             List<ValidationError> errors = new ArrayList<>();
-            schema1.validate(data, URI.create(""), errors::add);
+            validate(schema1, data, URI.create(""), errors::add);
 
             if (errors.isEmpty()) {
               // TODO.. add makeFail test.

@@ -1,5 +1,7 @@
 package net.jimblacker.jsongenerator;
 
+import static net.jimblackler.jsonschemafriend.Validator.validate;
+
 import java.net.URLDecoder;
 import java.net.URLEncoder;
 import java.util.ArrayList;
@@ -71,7 +73,7 @@ public class Generator {
 
     Object object = generateUnvalidated(schema, maxTreeSize);
     Collection<ValidationError> errors = new ArrayList<>();
-    schema.validate(object, errors::add);
+    validate(schema, object, errors::add);
     if (!errors.isEmpty()) {
       System.out.println("Object:");
       if (object instanceof JSONObject) {
@@ -111,6 +113,12 @@ public class Generator {
     Collection<Schema> oneOf = schema.getOneOf();
     if (oneOf != null && !oneOf.isEmpty()) {
       return generate(randomElement(random, oneOf), maxTreeSize - 1);
+    }
+
+    // Naive.
+    Schema then = schema.getThen();
+    if (then != null) {
+      return generate(then, maxTreeSize - 1);
     }
 
     Collection<String> types =
