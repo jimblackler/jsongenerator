@@ -10,6 +10,9 @@ public class PatternReverser {
     if (pattern.startsWith("^")) {
       pattern = pattern.substring("^".length());
     }
+    if (pattern.endsWith("$")) {
+      pattern = pattern.substring(0, pattern.length() - "$".length());
+    }
     Generex generex = new Generex(pattern, random);
     String str = generex.random(minLength, maxLength);
 
