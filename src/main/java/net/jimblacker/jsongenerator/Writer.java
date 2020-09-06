@@ -18,7 +18,7 @@ public class Writer {
   private final URI defaultMetaSchema = URI.create("http://json-schema.org/draft-07/schema#");
 
   public void build(URI uri, Path out, Random random, int maxTreeSize)
-      throws GenerationException, IOException, MissingPathException {
+      throws GenerationException, IOException, MissingPathException, JsonGeneratorException {
     SchemaStore schemaStore = new SchemaStore();
     Schema schema = schemaStore.loadSchema(uri, defaultMetaSchema);
 

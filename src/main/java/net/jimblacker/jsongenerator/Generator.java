@@ -19,9 +19,7 @@ import org.json.JSONObject;
 
 public class Generator {
   private static final int MAX_STRING_LENGTH = 60;
-  private static final int MAX_ARRAY_LENGTH = 20;
-  private static final int MAXIMUM_TARGET_PROPERTIES = 10;
-  private static final int MAX_ADDITIONAL_PROPERTIES_KEY_LENGTH = 20;
+  private static final int MAX_ADDITIONAL_PROPERTIES_KEY_LENGTH = 30;
   private final Configuration configuration;
   private final Random random;
   private final Schema anySchema;
@@ -62,45 +60,40 @@ public class Generator {
     return number.doubleValue();
   }
 
-  public Object generate(Schema schema, int maxTreeSize) {
+  public Object generate(Schema schema, int maxTreeSize) throws JsonGeneratorException {
+    if (schema.isFalse()) {
+      throw new JsonGeneratorException(
+          schema.getUri() + " : nothing can validate against a false schema");
+    }
     int seed = random.nextInt();
     random.setSeed(seed);
 
     Object object = generateUnvalidated(schema, maxTreeSize);
-    int tries = 1;
-    for (int idx = 0; idx != tries; idx++) {
-      Collection<ValidationError> errors = new ArrayList<>();
-      schema.validate(object, errors::add);
-      if (!errors.isEmpty()) {
-        if (idx == 0) {
-          System.out.println("Object:");
-          if (object instanceof JSONObject) {
-            System.out.println(((JSONObject) object).toString(2));
-          } else if (object instanceof JSONArray) {
-            System.out.println(((JSONArray) object).toString(2));
-          } else {
-            System.out.println(object);
-          }
-          System.out.println();
-          for (ValidationError error : errors) {
-            System.out.println(error);
-          }
-          random.setSeed(seed);
-          Object object2 = generateUnvalidated(schema, maxTreeSize);
-        }
-        if (idx == tries - 1) {
-          //          for (ValidationError error : errors) {
-          //            System.out.println(error);
-          //          }
-          return null;
-        }
+    Collection<ValidationError> errors = new ArrayList<>();
+    schema.validate(object, errors::add);
+    if (!errors.isEmpty()) {
+      System.out.println("Object:");
+      if (object instanceof JSONObject) {
+        System.out.println(((JSONObject) object).toString(2));
+      } else if (object instanceof JSONArray) {
+        System.out.println(((JSONArray) object).toString(2));
+      } else {
+        System.out.println(object);
       }
-      return object;
+      System.out.println();
+      for (ValidationError error : errors) {
+        System.out.println(error);
+      }
     }
-    return null;
+    return object;
   }
 
-  private Object generateUnvalidated(Schema schema, int maxTreeSize) {
+  private Object generateUnvalidated(Schema schema, int maxTreeSize) throws JsonGeneratorException {
+    Object _const = schema.getConst();
+    if (_const != null) {
+      return _const;
+    }
+
     // Naive.
     Collection<Schema> allOf = schema.getAllOf();
     if (allOf != null && !allOf.isEmpty()) {
@@ -178,7 +171,7 @@ public class Generator {
         int minItems = getInt(schema.getMinItems(), 0);
         int maxItems = getInt(schema.getMaxItems(), Integer.MAX_VALUE);
 
-        int length = random.nextInt(maxTreeSize);
+        int length = random.nextInt(random.nextInt(maxTreeSize + 1) + 1);
         if (length < minItems) {
           length = minItems;
         }
@@ -192,18 +185,26 @@ public class Generator {
         Schema additionalItemsSchema = schema.getAdditionalItems();
         Iterator<Schema> it = itemsTuple == null ? null : itemsTuple.iterator();
         while (schemas.size() < length) {
-          if (items != null) {
+          if (items != null && !items.isFalse()) {
             schemas.add(items);
-          } else if (it != null && it.hasNext()) {
-            schemas.add(it.next());
-          } else if (additionalItemsSchema != null) {
+            continue;
+          }
+          if (it != null && it.hasNext()) {
+            Schema next = it.next();
+            if (next.isFalse()) {
+              break;
+            }
+            schemas.add(next);
+            continue;
+          }
+          if (additionalItemsSchema != null) {
             if (additionalItemsSchema.isFalse()) {
               break;
             }
             schemas.add(additionalItemsSchema);
-          } else {
-            schemas.add(anySchema);
+            continue;
           }
+          schemas.add(anySchema);
         }
 
         JSONArray jsonArray = new JSONArray();
@@ -236,17 +237,16 @@ public class Generator {
         int minProperties = getInt(schema.getMinProperties(), 0);
         int maxProperties = getInt(schema.getMaxProperties(), Integer.MAX_VALUE);
 
-        int length = random.nextInt(maxTreeSize);
+        int length = random.nextInt(random.nextInt(maxTreeSize + 1) + 1);
         if (length < minProperties) {
           length = minProperties;
         }
 
-        if (length > minProperties) {
-          length = minProperties;
+        if (length > maxProperties) {
+          length = maxProperties;
         }
 
-        int targetProperties = random.nextInt(MAXIMUM_TARGET_PROPERTIES);
-        while (schemas.keySet().size() < targetProperties) {
+        while (schemas.keySet().size() < length) {
           if (patternPropertiesPatterns != null && !patternPropertiesPatterns.isEmpty()) {
             Collection<Schema> patternPropertiesSchema = schema.getPatternPropertiesSchema();
             int index = random.nextInt(patternPropertiesPatterns.size());
@@ -257,30 +257,37 @@ public class Generator {
               it1.next();
               index--;
             }
-            String pattern = it0.next().toString();
+            Schema schema1 = it1.next();
+            if (!schema1.isFalse()) {
+              String pattern = it0.next().toString();
 
-            if (pattern.startsWith("^")) {
-              pattern = pattern.substring("^".length());
+              if (pattern.startsWith("^")) {
+                pattern = pattern.substring("^".length());
+              }
+
+              String str = PatternReverser.reverse(pattern, 1, Integer.MAX_VALUE, random);
+              if (schemas.containsKey(str)) {
+                // Probably an inflexible pattern. Let's just give up.
+                break;
+              }
+              schemas.put(str, schema1);
             }
 
-            String str = PatternReverser.reverse(pattern, 1, Integer.MAX_VALUE, random);
-            if (schemas.containsKey(str)) {
-              // Probably an inflexible pattern. Let's just give up.
+          } else if (additionalProperties != null) {
+            if (additionalProperties.isFalse()) {
               break;
+            } else {
+              schemas.put(randomString(MAX_ADDITIONAL_PROPERTIES_KEY_LENGTH), additionalProperties);
             }
-            schemas.put(str, it1.next());
-
-          } else if (additionalProperties != null && !additionalProperties.isFalse()) {
-            schemas.put(randomString(MAX_ADDITIONAL_PROPERTIES_KEY_LENGTH), additionalProperties);
           } else {
-            break;
+            schemas.put(randomString(MAX_ADDITIONAL_PROPERTIES_KEY_LENGTH), anySchema);
           }
         }
 
         JSONObject jsonObject = new JSONObject();
         for (Map.Entry<String, Schema> entries : schemas.entrySet()) {
-          jsonObject.put(
-              entries.getKey(), generate(entries.getValue(), (maxTreeSize - 1) / length));
+          jsonObject.put(entries.getKey(),
+              generate(entries.getValue(), (maxTreeSize - 1) / schemas.entrySet().size()));
         }
         return jsonObject;
       }
