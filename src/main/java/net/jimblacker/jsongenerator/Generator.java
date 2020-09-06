@@ -264,6 +264,7 @@ public class Generator {
         Collection<Ecma262Pattern> patternPropertiesPatterns =
             schema.getPatternPropertiesPatterns();
         Schema additionalProperties = schema.getAdditionalProperties();
+        Schema propertyNameSchema = schema.getPropertyNames();
 
         int minProperties = getInt(schema.getMinProperties(), 0);
         int maxProperties = getInt(schema.getMaxProperties(), Integer.MAX_VALUE);
@@ -302,16 +303,34 @@ public class Generator {
                 break;
               }
               schemas.put(str, schema1);
+              continue;
             }
+          }
+          if (additionalProperties != null && additionalProperties.isFalse()) {
+            break;
+          }
 
-          } else if (additionalProperties != null) {
-            if (additionalProperties.isFalse()) {
-              break;
-            } else {
-              schemas.put(randomString(MAX_ADDITIONAL_PROPERTIES_KEY_LENGTH), additionalProperties);
+          if (propertyNameSchema != null && propertyNameSchema.isFalse()) {
+            break;
+          }
+
+          String propertyName = null;
+
+          if (propertyNameSchema != null) {
+            Object propertyNameObject = generate(schema.getPropertyNames(), 1);
+            if (propertyNameObject instanceof String) {
+              propertyName = (String) propertyNameObject;
             }
+          }
+
+          if (propertyName == null) {
+            propertyName = randomString(MAX_ADDITIONAL_PROPERTIES_KEY_LENGTH);
+          }
+
+          if (additionalProperties == null) {
+            schemas.put(propertyName, anySchema);
           } else {
-            schemas.put(randomString(MAX_ADDITIONAL_PROPERTIES_KEY_LENGTH), anySchema);
+            schemas.put(propertyName, additionalProperties);
           }
         }
 
