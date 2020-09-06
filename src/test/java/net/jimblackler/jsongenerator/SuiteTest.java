@@ -93,20 +93,30 @@ public class SuiteTest {
     Collection<DynamicTest> ownTests = new ArrayList<>();
     Object schema = testSet.get("schema");
     URL resource = SuiteTest.class.getResource(remotes.toString());
-    {
-      if (schema instanceof JSONObject) {
-        JSONObject schema1 = (JSONObject) schema;
-        schema1.put("$schema", metaSchema.toString());
+    if (schema instanceof JSONObject) {
+      JSONObject schema1 = (JSONObject) schema;
+      schema1.put("$schema", metaSchema.toString());
+    }
+
+    DocumentSource documentSource = new DocumentSource(List.of(
+        in -> URI.create(in.toString().replace("http://localhost:1234", resource.toString()))));
+    URI local = new URI("memory", "local", null, null);
+    documentSource.store(local, schema);
+    SchemaStore schemaStore = new SchemaStore(documentSource);
+    net.jimblackler.jsonschemafriend.Schema schema1 =
+        schemaStore.loadSchema(local, URI.create("http://json-schema.org/draft-07/schema#"));
+
+    JSONArray tests1 = testSet.getJSONArray("tests");
+    boolean anyValid = false;
+    for (int idx2 = 0; idx2 != tests1.length(); idx2++) {
+      JSONObject test = tests1.getJSONObject(idx2);
+      if (test.getBoolean("valid")) {
+        anyValid = true;
+        break;
       }
+    }
 
-      DocumentSource documentSource = new DocumentSource(List.of(
-          in -> URI.create(in.toString().replace("http://localhost:1234", resource.toString()))));
-      URI local = new URI("memory", "local", null, null);
-      documentSource.store(local, schema);
-      SchemaStore schemaStore = new SchemaStore(documentSource);
-      net.jimblackler.jsonschemafriend.Schema schema1 =
-          schemaStore.loadSchema(local, URI.create("http://json-schema.org/draft-07/schema#"));
-
+    if (anyValid) {
       ownTests.add(dynamicTest("Make JSON", () -> {
         System.out.println("Schema:");
         if (schema instanceof JSONObject) {
@@ -117,7 +127,7 @@ public class SuiteTest {
         System.out.println();
 
         Object generated =
-            new Generator(() -> false, schemaStore, new Random(1)).generate(schema1, 250);
+            new Generator(() -> false, schemaStore, new Random(1)).generate(schema1, 500);
 
         if (generated instanceof JSONObject) {
           System.out.println(((JSONObject) generated).toString(2));
@@ -129,7 +139,7 @@ public class SuiteTest {
         schema1.validate(generated);
 
         // Does it also pass Everit?
-        if (false)  // Reenable when there's a 'non null' option: Everit doesn't like null.
+        if (false) // Reenable when there's a 'non null' option: Everit doesn't like null.
           if (schema instanceof JSONObject) {
             Schema everitSchema = SchemaLoader.load((JSONObject) schema, url -> {
               url = url.replace("http://localhost:1234", resource.toString());
@@ -149,53 +159,52 @@ public class SuiteTest {
             }
           }
       }));
-
-      JSONArray tests1 = testSet.getJSONArray("tests");
-      if (false)
-        for (int idx2 = 0; idx2 != tests1.length(); idx2++) {
-          JSONObject test = tests1.getJSONObject(idx2);
-          Object data = test.get("data");
-          boolean valid = test.getBoolean("valid");
-          String description =
-              test.optString("description", data + (valid ? " succeeds" : " fails"));
-
-          {
-            ownTests.add(dynamicTest(description, () -> {
-              System.out.println("Schema:");
-              if (schema instanceof JSONObject) {
-                System.out.println(((JSONObject) schema).toString(2));
-              } else {
-                System.out.println(schema);
-              }
-              System.out.println();
-
-              System.out.println("Test:");
-              System.out.println(test.toString(2));
-              System.out.println();
-
-              List<ValidationError> errors = new ArrayList<>();
-              schema1.validate(data, URI.create(""), errors::add);
-
-              if (errors.isEmpty()) {
-                // TODO.. add makeFail test.
-              }
-
-              System.out.print("Expected to " + (valid ? "pass" : "fail") + " ... ");
-              if (errors.isEmpty()) {
-                System.out.println("Passed");
-              } else {
-                System.out.println("Failures:");
-                for (ValidationError error : errors) {
-                  System.out.println(error);
-                }
-                System.out.println();
-              }
-
-              assertEquals(errors.isEmpty(), valid);
-            }));
-          }
-        }
     }
+
+    if (false)
+      for (int idx2 = 0; idx2 != tests1.length(); idx2++) {
+        JSONObject test = tests1.getJSONObject(idx2);
+        Object data = test.get("data");
+        boolean valid = test.getBoolean("valid");
+        String description = test.optString("description", data + (valid ? " succeeds" : " fails"));
+
+        {
+          ownTests.add(dynamicTest(description, () -> {
+            System.out.println("Schema:");
+            if (schema instanceof JSONObject) {
+              System.out.println(((JSONObject) schema).toString(2));
+            } else {
+              System.out.println(schema);
+            }
+            System.out.println();
+
+            System.out.println("Test:");
+            System.out.println(test.toString(2));
+            System.out.println();
+
+            List<ValidationError> errors = new ArrayList<>();
+            schema1.validate(data, URI.create(""), errors::add);
+
+            if (errors.isEmpty()) {
+              // TODO.. add makeFail test.
+            }
+
+            System.out.print("Expected to " + (valid ? "pass" : "fail") + " ... ");
+            if (errors.isEmpty()) {
+              System.out.println("Passed");
+            } else {
+              System.out.println("Failures:");
+              for (ValidationError error : errors) {
+                System.out.println(error);
+              }
+              System.out.println();
+            }
+
+            assertEquals(errors.isEmpty(), valid);
+          }));
+        }
+      }
+
     return dynamicContainer(testSet.getString("description"), ownTests);
   }
 
