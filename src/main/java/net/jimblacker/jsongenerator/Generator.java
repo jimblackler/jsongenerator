@@ -4,6 +4,7 @@ import java.net.URLDecoder;
 import java.net.URLEncoder;
 import java.util.ArrayList;
 import java.util.Collection;
+import java.util.HashMap;
 import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
@@ -61,11 +62,11 @@ public class Generator {
     return number.doubleValue();
   }
 
-  public Object generate(Schema schema) {
+  public Object generate(Schema schema, int maxTreeSize) {
     int seed = random.nextInt();
     random.setSeed(seed);
 
-    Object object = generateUnvalidated(schema);
+    Object object = generateUnvalidated(schema, maxTreeSize);
     int tries = 1;
     for (int idx = 0; idx != tries; idx++) {
       Collection<ValidationError> errors = new ArrayList<>();
@@ -85,7 +86,7 @@ public class Generator {
             System.out.println(error);
           }
           random.setSeed(seed);
-          Object object2 = generateUnvalidated(schema);
+          Object object2 = generateUnvalidated(schema, maxTreeSize);
         }
         if (idx == tries - 1) {
           //          for (ValidationError error : errors) {
@@ -99,25 +100,23 @@ public class Generator {
     return null;
   }
 
-  private Object generateUnvalidated(Schema schema) {
-    JSONObject jsonObject = new JSONObject();
-
+  private Object generateUnvalidated(Schema schema, int maxTreeSize) {
     // Naive.
     Collection<Schema> allOf = schema.getAllOf();
     if (allOf != null && !allOf.isEmpty()) {
-      return generate(randomElement(random, allOf));
+      return generate(randomElement(random, allOf), maxTreeSize - 1);
     }
 
     // Naive.
     Collection<Schema> anyOf = schema.getAnyOf();
     if (anyOf != null && !anyOf.isEmpty()) {
-      return generate(randomElement(random, anyOf));
+      return generate(randomElement(random, anyOf), maxTreeSize - 1);
     }
 
     // Naive.
     Collection<Schema> oneOf = schema.getOneOf();
     if (oneOf != null && !oneOf.isEmpty()) {
-      return generate(randomElement(random, oneOf));
+      return generate(randomElement(random, oneOf), maxTreeSize - 1);
     }
 
     Collection<String> types =
@@ -174,32 +173,47 @@ public class Generator {
         return randomString(length);
       }
       case "array": {
-        JSONArray jsonArray = new JSONArray();
+        List<Schema> schemas = new ArrayList<>();
+
         int minItems = getInt(schema.getMinItems(), 0);
         int maxItems = getInt(schema.getMaxItems(), Integer.MAX_VALUE);
-        int useMaxItems = Math.min(maxItems, minItems + MAX_ARRAY_LENGTH);
-        int length = random.nextInt(useMaxItems - minItems) + minItems + 1;
+
+        int length = random.nextInt(maxTreeSize);
+        if (length < minItems) {
+          length = minItems;
+        }
+
+        if (length > maxItems) {
+          length = maxItems;
+        }
+
         Collection<Schema> itemsTuple = schema.getItemsTuple();
         Schema items = schema.getItems();
         Schema additionalItemsSchema = schema.getAdditionalItems();
         Iterator<Schema> it = itemsTuple == null ? null : itemsTuple.iterator();
-        for (int idx = 0; idx != length; idx++) {
+        while (schemas.size() < length) {
           if (items != null) {
-            jsonArray.put(generate(items));
+            schemas.add(items);
           } else if (it != null && it.hasNext()) {
-            jsonArray.put(generate(it.next()));
+            schemas.add(it.next());
           } else if (additionalItemsSchema != null) {
             if (additionalItemsSchema.isFalse()) {
               break;
             }
-            jsonArray.put(generate(additionalItemsSchema));
+            schemas.add(additionalItemsSchema);
           } else {
-            jsonArray.put(generate(anySchema));
+            schemas.add(anySchema);
           }
+        }
+
+        JSONArray jsonArray = new JSONArray();
+        for (Schema schema1 : schemas) {
+          jsonArray.put(generate(schema1, (maxTreeSize - 1) / length));
         }
         return jsonArray;
       }
       case "object": {
+        Map<String, Schema> schemas = new HashMap<>();
         Map<String, Schema> properties = schema.getProperties();
         Collection<String> requiredProperties = schema.getRequiredProperties();
         Collection<String> allProperties = new ArrayList<>();
@@ -211,15 +225,28 @@ public class Generator {
             if (schema1 == null) {
               schema1 = anySchema;
             }
-            jsonObject.put(property, generate(schema1));
+            schemas.put(property, schema1);
           }
         }
 
         Collection<Ecma262Pattern> patternPropertiesPatterns =
             schema.getPatternPropertiesPatterns();
         Schema additionalProperties = schema.getAdditionalProperties();
+
+        int minProperties = getInt(schema.getMinProperties(), 0);
+        int maxProperties = getInt(schema.getMaxProperties(), Integer.MAX_VALUE);
+
+        int length = random.nextInt(maxTreeSize);
+        if (length < minProperties) {
+          length = minProperties;
+        }
+
+        if (length > minProperties) {
+          length = minProperties;
+        }
+
         int targetProperties = random.nextInt(MAXIMUM_TARGET_PROPERTIES);
-        while (jsonObject.keySet().size() < targetProperties) {
+        while (schemas.keySet().size() < targetProperties) {
           if (patternPropertiesPatterns != null && !patternPropertiesPatterns.isEmpty()) {
             Collection<Schema> patternPropertiesSchema = schema.getPatternPropertiesSchema();
             int index = random.nextInt(patternPropertiesPatterns.size());
@@ -237,20 +264,24 @@ public class Generator {
             }
 
             String str = PatternReverser.reverse(pattern, 1, Integer.MAX_VALUE, random);
-            if (jsonObject.has(str)) {
+            if (schemas.containsKey(str)) {
               // Probably an inflexible pattern. Let's just give up.
               break;
             }
-            jsonObject.put(str, generate(it1.next()));
+            schemas.put(str, it1.next());
 
           } else if (additionalProperties != null && !additionalProperties.isFalse()) {
-            jsonObject.put(
-                randomString(MAX_ADDITIONAL_PROPERTIES_KEY_LENGTH), generate(additionalProperties));
+            schemas.put(randomString(MAX_ADDITIONAL_PROPERTIES_KEY_LENGTH), additionalProperties);
           } else {
             break;
           }
         }
 
+        JSONObject jsonObject = new JSONObject();
+        for (Map.Entry<String, Schema> entries : schemas.entrySet()) {
+          jsonObject.put(
+              entries.getKey(), generate(entries.getValue(), (maxTreeSize - 1) / length));
+        }
         return jsonObject;
       }
       case "null": {

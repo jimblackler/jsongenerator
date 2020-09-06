@@ -31,7 +31,7 @@ public class FromInternet {
         testsOut.add(DynamicTest.dynamicTest(str, () -> {
           URI uri = URI.create(str);
           Path out = outDir.resolve(uri.getPath().replace("/", "~").replace(".", "_") + ".json");
-          new Writer().build(uri, out, new Random(1));
+          new Writer().build(uri, out, new Random(1), 200);
         }));
       }
     }
