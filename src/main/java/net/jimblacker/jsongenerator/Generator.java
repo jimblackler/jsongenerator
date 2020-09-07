@@ -1,5 +1,6 @@
 package net.jimblacker.jsongenerator;
 
+import static net.jimblacker.jsongenerator.CollectionUtils.randomElement;
 import static net.jimblacker.jsongenerator.Fixer.fixUp;
 import static net.jimblacker.jsongenerator.StringUtils.randomString;
 import static net.jimblacker.jsongenerator.ValueUtils.getDouble;
@@ -15,6 +16,7 @@ import java.util.Map;
 import java.util.Random;
 import net.jimblackler.jsonschemafriend.Ecma262Pattern;
 import net.jimblackler.jsonschemafriend.GenerationException;
+import net.jimblackler.jsonschemafriend.MissingPathException;
 import net.jimblackler.jsonschemafriend.Schema;
 import net.jimblackler.jsonschemafriend.SchemaStore;
 import org.json.JSONArray;
@@ -38,7 +40,8 @@ public class Generator {
     return anySchema;
   }
 
-  public Object generate(Schema schema, int maxTreeSize) throws JsonGeneratorException {
+  public Object generate(Schema schema, int maxTreeSize)
+      throws JsonGeneratorException, MissingPathException {
     if (schema.isFalse()) {
       throw new JsonGeneratorException(
           schema.getUri() + " : nothing can validate against a false schema");
@@ -66,19 +69,19 @@ public class Generator {
     // Naive.
     Collection<Schema> allOf = schema.getAllOf();
     if (allOf != null && !allOf.isEmpty()) {
-      return generateUnvalidated(CollectionUtils.randomElement(random, allOf), maxTreeSize - 1);
+      return generateUnvalidated(randomElement(random, allOf), maxTreeSize - 1);
     }
 
     // Naive.
     Collection<Schema> anyOf = schema.getAnyOf();
     if (anyOf != null && !anyOf.isEmpty()) {
-      return generateUnvalidated(CollectionUtils.randomElement(random, anyOf), maxTreeSize - 1);
+      return generateUnvalidated(randomElement(random, anyOf), maxTreeSize - 1);
     }
 
     // Naive.
     Collection<Schema> oneOf = schema.getOneOf();
     if (oneOf != null && !oneOf.isEmpty()) {
-      return generateUnvalidated(CollectionUtils.randomElement(random, oneOf), maxTreeSize - 1);
+      return generateUnvalidated(randomElement(random, oneOf), maxTreeSize - 1);
     }
 
     // Naive.
@@ -90,24 +93,38 @@ public class Generator {
     Collection<String> types =
         configuration.isPedanticTypes() ? schema.getNonProhibitedTypes() : schema.getTypes();
 
+    types = new HashSet<>(types);
+
+    if (maxTreeSize < 1) {
+      if (types.size() > 1 && types.contains("array")) {
+        types.remove("array");
+      }
+      if (types.size() > 1 && types.contains("object")) {
+        types.remove("object");
+      }
+    }
+
     Schema contains = schema.getContains();
     if (contains != null && contains.isFalse()) {
+      // Special case for when 'contains' is a false schema. We can't generate an array.
       types = new HashSet<>(schema.getNonProhibitedTypes());
       types.remove("array");
     }
 
-    if (!configuration.isGenerateNulls()) {
-      types = new HashSet<>(schema.getNonProhibitedTypes());
+    Collection<String> explicitTypes = schema.getExplicitTypes();
+    if (!configuration.isGenerateNulls()
+        && (explicitTypes == null || !explicitTypes.contains("null"))) {
+      // We remove null if the configuration demands it, but not if the schema calls for it.
       types.remove("null");
     }
 
     if (types.isEmpty()) {
       throw new IllegalStateException("No types");
     }
-    String type = CollectionUtils.randomElement(random, types);
+    String type = randomElement(random, types);
     List<Object> enums = schema.getEnums();
     if (enums != null) {
-      return CollectionUtils.randomElement(random, enums);
+      return randomElement(random, enums);
     }
     switch (type) {
       case "boolean": {
@@ -142,7 +159,7 @@ public class Generator {
         int minLength = getInt(schema.getMinLength(), 0);
         int maxLength = getInt(schema.getMaxLength(), Integer.MAX_VALUE);
         int useMaxLength = Math.min(maxLength, minLength + MAX_STRING_LENGTH);
-        int length = random.nextInt(useMaxLength - minLength) + minLength + 1;
+        int length = random.nextInt(useMaxLength - minLength + 1) + minLength;
         Ecma262Pattern pattern1 = schema.getPattern();
         String pattern = pattern1 == null ? null : pattern1.toString();
         if (pattern != null) {
@@ -157,7 +174,7 @@ public class Generator {
         int minItems = getInt(schema.getMinItems(), 0);
         int maxItems = getInt(schema.getMaxItems(), Integer.MAX_VALUE);
 
-        int length = random.nextInt(random.nextInt(maxTreeSize + 1) + 1);
+        int length = random.nextInt(random.nextInt(Math.max(maxTreeSize, 0) + 1) + 1);
         if (length < minItems) {
           length = minItems;
         }
@@ -223,7 +240,7 @@ public class Generator {
         allProperties.addAll(requiredProperties);
         allProperties.addAll(properties.keySet());
         for (String property : allProperties) {
-          if (requiredProperties.contains(property) || random.nextBoolean()) {
+          if (requiredProperties.contains(property) || (random.nextBoolean() && maxTreeSize > 0)) {
             Schema schema1 = properties.get(property);
             if (schema1 == null) {
               schema1 = anySchema;
@@ -240,7 +257,7 @@ public class Generator {
         int minProperties = getInt(schema.getMinProperties(), 0);
         int maxProperties = getInt(schema.getMaxProperties(), Integer.MAX_VALUE);
 
-        int length = random.nextInt(random.nextInt(maxTreeSize + 1) + 1);
+        int length = random.nextInt(random.nextInt(Math.max(maxTreeSize, 0) + 1) + 1);
         if (length < minProperties) {
           length = minProperties;
         }

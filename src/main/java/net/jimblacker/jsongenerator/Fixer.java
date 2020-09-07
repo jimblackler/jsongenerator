@@ -1,5 +1,6 @@
 package net.jimblacker.jsongenerator;
 
+import static net.jimblacker.jsongenerator.CollectionUtils.randomElement;
 import static net.jimblacker.jsongenerator.StringUtils.randomString;
 import static net.jimblacker.jsongenerator.ValueUtils.getInt;
 import static net.jimblackler.jsonschemafriend.Validator.validate;
@@ -14,11 +15,13 @@ import java.util.Random;
 import java.util.Set;
 import net.jimblackler.jsonschemafriend.AnyOfError;
 import net.jimblackler.jsonschemafriend.ConstError;
+import net.jimblackler.jsonschemafriend.DependencyError;
 import net.jimblackler.jsonschemafriend.Ecma262Pattern;
 import net.jimblackler.jsonschemafriend.EnumError;
 import net.jimblackler.jsonschemafriend.ExclusiveMaximumError;
 import net.jimblackler.jsonschemafriend.ExclusiveMinimumError;
 import net.jimblackler.jsonschemafriend.FalseSchemaError;
+import net.jimblackler.jsonschemafriend.MaxPropertiesError;
 import net.jimblackler.jsonschemafriend.MaximumError;
 import net.jimblackler.jsonschemafriend.MinItemsError;
 import net.jimblackler.jsonschemafriend.MinLengthError;
@@ -38,9 +41,10 @@ import org.json.JSONArray;
 import org.json.JSONObject;
 
 public class Fixer {
-  static Object fixUp(Schema schema, Object object, Generator generator, Random random) {
+  static Object fixUp(Schema schema, Object object, Generator generator, Random random)
+      throws MissingPathException {
     int attempt = 0;
-    Set<String> considered = new HashSet<String>();
+    Set<String> considered = new HashSet<>();
     while (true) {
       Collection<ValidationError> errors = new ArrayList<>();
       validate(schema, object, errors::add);
@@ -121,23 +125,28 @@ public class Fixer {
     if (error instanceof ConstError) {
       return schema.getConst();
     }
+
     if (error instanceof EnumError) {
       List<Object> enums = schema.getEnums();
       return enums.get(random.nextInt(enums.size()));
     }
+
     if (error instanceof MissingPropertyError) {
       MissingPropertyError error1 = (MissingPropertyError) error;
       String property = error1.getProperty();
-      Schema schema1 = error.getSchema().getProperties().get(property);
-      if (schema1 == null) {
-        // This can happen where 'required' property is not specified as a property explicitly.
-        schema1 = generator.getAnySchema();
-      }
-
       JSONObject jsonObject = (JSONObject) object;
       jsonObject.put(property, 0);
       return object;
     }
+
+    if (error instanceof DependencyError) {
+      DependencyError error1 = (DependencyError) error;
+      String property = error1.getDependency();
+      JSONObject jsonObject = (JSONObject) object;
+      jsonObject.put(property, 0);
+      return object;
+    }
+
     if (error instanceof MultipleError) {
       Number multiple = schema.getMultipleOf();
       Number objectAsNumber = (Number) object;
@@ -180,7 +189,7 @@ public class Fixer {
       // TODO: just regenerate?
       TypeError error1 = (TypeError) error;
       Collection<String> expectedTypes = error1.getExpectedTypes();
-      String type = CollectionUtils.randomElement(random, expectedTypes);
+      String type = randomElement(random, expectedTypes);
       switch (type) {
         case "array":
           return new JSONArray();
@@ -202,7 +211,7 @@ public class Fixer {
 
     if (error instanceof PatternError) {
       Ecma262Pattern pattern1 = schema.getPattern();
-      Random r2 = new Random(random.nextInt(10));  // Limited number to help detect lost causes.
+      Random r2 = new Random(random.nextInt(10)); // Limited number to help detect lost causes.
       return PatternReverser.reverse(pattern1.toString(), getInt(schema.getMinLength(), 0),
           getInt(schema.getMaxLength(), Integer.MAX_VALUE), r2);
     }
@@ -220,23 +229,37 @@ public class Fixer {
         jsonObject.put(entry.getKey(), 0);
       }
       while (jsonObject.length() < minProperties) {
-        Collection<Ecma262Pattern> patternPropertiesPatterns = schema.getPatternPropertiesPatterns();
+        Collection<Ecma262Pattern> patternPropertiesPatterns =
+            schema.getPatternPropertiesPatterns();
         Collection<Schema> patternPropertiesSchema = schema.getPatternPropertiesSchema();
-        int index = random.nextInt(patternPropertiesPatterns.size());
-        Iterator<Ecma262Pattern> it0 = patternPropertiesPatterns.iterator();
-        Iterator<Schema> it1 = patternPropertiesSchema.iterator();
-        while (index > 0) {
-          it0.next();
-          it1.next();
-          index--;
+        if (patternPropertiesPatterns.isEmpty()) {
+          jsonObject.put(randomString(random, 5), 0);
+        } else {
+          int index = random.nextInt(patternPropertiesPatterns.size());
+          Iterator<Ecma262Pattern> it0 = patternPropertiesPatterns.iterator();
+          Iterator<Schema> it1 = patternPropertiesSchema.iterator();
+          while (index > 0) {
+            it0.next();
+            it1.next();
+            index--;
+          }
+          Schema schema1 = it1.next();
+          if (!schema1.isFalse()) {
+            String pattern = it0.next().toString();
+            String str = PatternReverser.reverse(pattern, 1, Integer.MAX_VALUE, random);
+            jsonObject.put(str, 0);
+          }
         }
-        Schema schema1 = it1.next();
-        if (!schema1.isFalse()) {
-          String pattern = it0.next().toString();
+      }
+      return jsonObject;
+    }
 
-          String str = PatternReverser.reverse(pattern, 1, Integer.MAX_VALUE, random);
-          jsonObject.put(str, 0);
-        }
+    if (error instanceof MaxPropertiesError) {
+      JSONObject jsonObject = (JSONObject) object;
+      int maxProperties = schema.getMaxProperties().intValue();
+      while (jsonObject.length() > maxProperties) {
+        String propertyName = randomElement(random, jsonObject.keySet());
+        jsonObject.remove(propertyName);
       }
       return jsonObject;
     }
