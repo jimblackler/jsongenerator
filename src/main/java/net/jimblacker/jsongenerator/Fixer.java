@@ -6,18 +6,22 @@ import java.util.ArrayList;
 import java.util.Collection;
 import java.util.List;
 import java.util.Random;
-import net.jimblackler.jsonschemafriend.AnyOfValidationError;
-import net.jimblackler.jsonschemafriend.BelowMinItemsValidationError;
-import net.jimblackler.jsonschemafriend.ConstMismatchError;
-import net.jimblackler.jsonschemafriend.GreaterThanMaximumError;
-import net.jimblackler.jsonschemafriend.LessThanMinimumError;
+import net.jimblackler.jsonschemafriend.AnyOfError;
+import net.jimblackler.jsonschemafriend.ConstError;
+import net.jimblackler.jsonschemafriend.EnumError;
+import net.jimblackler.jsonschemafriend.ExclusiveMaximumError;
+import net.jimblackler.jsonschemafriend.ExclusiveMinimumError;
+import net.jimblackler.jsonschemafriend.MaximumError;
+import net.jimblackler.jsonschemafriend.MinItemsError;
+import net.jimblackler.jsonschemafriend.MinimumError;
 import net.jimblackler.jsonschemafriend.MissingPathException;
 import net.jimblackler.jsonschemafriend.MissingPropertyError;
-import net.jimblackler.jsonschemafriend.NotAMultipleError;
-import net.jimblackler.jsonschemafriend.NotValidationError;
-import net.jimblackler.jsonschemafriend.OneOfValidationError;
+import net.jimblackler.jsonschemafriend.MultipleError;
+import net.jimblackler.jsonschemafriend.NotError;
+import net.jimblackler.jsonschemafriend.OneOfError;
 import net.jimblackler.jsonschemafriend.PathUtils;
 import net.jimblackler.jsonschemafriend.Schema;
+import net.jimblackler.jsonschemafriend.TypeError;
 import net.jimblackler.jsonschemafriend.ValidationError;
 import org.json.JSONArray;
 import org.json.JSONObject;
@@ -51,8 +55,8 @@ public class Fixer {
       while (!errorList.isEmpty()) {
         ValidationError error = errorList.remove(0);
 
-        if (error instanceof AnyOfValidationError) {
-          AnyOfValidationError error1 = (AnyOfValidationError) error;
+        if (error instanceof AnyOfError) {
+          AnyOfError error1 = (AnyOfError) error;
           List<List<ValidationError>> allErrors = error1.getAllErrors();
           int i = random.nextInt(allErrors.size());
           // Pick one at random and fix the object to match it.
@@ -60,8 +64,8 @@ public class Fixer {
           continue;
         }
 
-        if (error instanceof OneOfValidationError) {
-          OneOfValidationError error1 = (OneOfValidationError) error;
+        if (error instanceof OneOfError) {
+          OneOfError error1 = (OneOfError) error;
           if (error1.getNumberPassed() == 0) {
             List<List<ValidationError>> allErrors = error1.getAllErrors();
             int i = random.nextInt(allErrors.size());
@@ -73,7 +77,7 @@ public class Fixer {
 
         try {
           Object objectToFix = PathUtils.fetchFromPath(object, error.getUri().getRawFragment());
-          Object fixed = fix(objectToFix, error, generator);
+          Object fixed = fix(objectToFix, error, generator, random);
           if (objectToFix == object) {
             object = fixed;
           } else if (objectToFix != fixed) {
@@ -87,50 +91,61 @@ public class Fixer {
     return object;
   }
 
-  private static Object fix(Object object, ValidationError error, Generator generator) {
-    if (error instanceof ConstMismatchError) {
-      ConstMismatchError error1 = (ConstMismatchError) error;
-      return error1.getConst();
+  private static Object fix(
+      Object object, ValidationError error, Generator generator, Random random) {
+    Schema schema = error.getSchema();
+    if (error instanceof ConstError) {
+      return schema.getConst();
+    }
+    if (error instanceof EnumError) {
+      List<Object> enums = schema.getEnums();
+      return enums.get(random.nextInt(enums.size()));
     }
     if (error instanceof MissingPropertyError) {
       MissingPropertyError error1 = (MissingPropertyError) error;
       String property = error1.getProperty();
-      Schema schema = error.getSchema().getProperties().get(property);
+      Schema schema1 = error.getSchema().getProperties().get(property);
       JSONObject jsonObject = (JSONObject) object;
       try {
-        Object value = generator.generate(schema, 50);
+        Object value = generator.generate(schema1, 50);
         jsonObject.put(property, value);
       } catch (JsonGeneratorException e) {
         e.printStackTrace();
       }
       return object;
     }
-    if (error instanceof NotAMultipleError) {
-      NotAMultipleError error1 = (NotAMultipleError) error;
-      Number multiple = error1.getMultiple();
+    if (error instanceof MultipleError) {
+      Number multiple = schema.getMultipleOf();
       Number objectAsNumber = (Number) object;
       double v = multiple.doubleValue();
       int multiples = (int) (objectAsNumber.doubleValue() / v);
       return multiples * v;
     }
 
-    if (error instanceof LessThanMinimumError) {
-      LessThanMinimumError error1 = (LessThanMinimumError) error;
-      return error1.getMinimum();
+    if (error instanceof MinimumError) {
+      return schema.getMinimum();
     }
 
-    if (error instanceof GreaterThanMaximumError) {
-      GreaterThanMaximumError error1 = (GreaterThanMaximumError) error;
-      return error1.getMaximum();
+    if (error instanceof MaximumError) {
+      return schema.getMaximum();
     }
 
-    if (error instanceof NotValidationError) {
+    if (error instanceof ExclusiveMinimumError) {
+      // TODO: do something more sophisticated.
+      return schema.getExclusiveMinimum().floatValue() + 0.1f;
+    }
+
+    if (error instanceof ExclusiveMaximumError) {
+      // TODO: do something more sophisticated.
+      return schema.getExclusiveMaximum().floatValue() - 0.1f;
+    }
+
+    if (error instanceof NotError) {
       return object;
     }
 
-    if (error instanceof BelowMinItemsValidationError) {
-      BelowMinItemsValidationError error1 = (BelowMinItemsValidationError) error;
-      Schema additionalItemsSchema = error.getSchema().getAdditionalItems();
+    if (error instanceof MinItemsError) {
+      Schema additionalItemsSchema = schema.getAdditionalItems();
       JSONArray array = (JSONArray) object;
 
       try {
@@ -141,6 +156,38 @@ public class Fixer {
         }
       } catch (JsonGeneratorException e) {
         e.printStackTrace();
+      }
+    }
+
+    if (error instanceof OneOfError) {
+      try {
+        return generator.generate(generator.getAnySchema(), 5);
+      } catch (JsonGeneratorException e) {
+        e.printStackTrace();
+      }
+    }
+
+    if (error instanceof TypeError) {
+      // TODO: just regenerate?
+      TypeError error1 = (TypeError) error;
+      Collection<String> expectedTypes = error1.getExpectedTypes();
+      String type = CollectionUtils.randomElement(random, expectedTypes);
+      switch (type) {
+        case "array":
+          return new JSONArray();
+        case "boolean":
+          return false;
+        case "integer":
+          return 0;
+        case "null":
+          return null;
+        case "number":
+          return 0;
+        case "object":
+          return new JSONObject();
+        case "string":
+          return "";
+        default:
       }
     }
 

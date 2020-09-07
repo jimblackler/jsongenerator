@@ -33,21 +33,6 @@ public class Generator {
     anySchema = schemaStore.loadSchema(true);
   }
 
-  public static <T> T randomElement(Random random, Collection<T> collection) {
-    int size = collection.size();
-    if (size == 0) {
-      throw new IllegalStateException();
-    }
-    int selection = random.nextInt(size);
-    for (T element : collection) {
-      if (selection == 0) {
-        return element;
-      }
-      selection--;
-    }
-    throw new IllegalStateException();
-  }
-
   private static int getInt(Number number, int _default) {
     if (number == null) {
       return _default;
@@ -71,16 +56,21 @@ public class Generator {
       throw new JsonGeneratorException(
           schema.getUri() + " : nothing can validate against a false schema");
     }
-    int seed = random.nextInt();
-    random.setSeed(seed);
 
-    Object object = generateUnvalidated(schema, maxTreeSize);
-    object = Fixer.fixUp(schema, object, this, random);
+    Object object;
+    if (configuration.isGenerateMinimal()) {
+      object = 1;
+    } else {
+      int seed = random.nextInt();
+      random.setSeed(seed);
 
-    return object;
+      object = generateUnvalidated(schema, maxTreeSize);
+    }
+
+    return Fixer.fixUp(schema, object, this, random);
   }
 
-  private Object generateUnvalidated(Schema schema, int maxTreeSize) throws JsonGeneratorException {
+  private Object generateUnvalidated(Schema schema, int maxTreeSize) {
     Object _const = schema.getConst();
     if (_const != null) {
       return _const;
@@ -89,19 +79,19 @@ public class Generator {
     // Naive.
     Collection<Schema> allOf = schema.getAllOf();
     if (allOf != null && !allOf.isEmpty()) {
-      return generateUnvalidated(randomElement(random, allOf), maxTreeSize - 1);
+      return generateUnvalidated(CollectionUtils.randomElement(random, allOf), maxTreeSize - 1);
     }
 
     // Naive.
     Collection<Schema> anyOf = schema.getAnyOf();
     if (anyOf != null && !anyOf.isEmpty()) {
-      return generateUnvalidated(randomElement(random, anyOf), maxTreeSize - 1);
+      return generateUnvalidated(CollectionUtils.randomElement(random, anyOf), maxTreeSize - 1);
     }
 
     // Naive.
     Collection<Schema> oneOf = schema.getOneOf();
     if (oneOf != null && !oneOf.isEmpty()) {
-      return generateUnvalidated(randomElement(random, oneOf), maxTreeSize - 1);
+      return generateUnvalidated(CollectionUtils.randomElement(random, oneOf), maxTreeSize - 1);
     }
 
     // Naive.
@@ -127,10 +117,10 @@ public class Generator {
     if (types.isEmpty()) {
       throw new IllegalStateException("No types");
     }
-    String type = randomElement(random, types);
+    String type = CollectionUtils.randomElement(random, types);
     List<Object> enums = schema.getEnums();
     if (enums != null) {
-      return randomElement(random, enums);
+      return CollectionUtils.randomElement(random, enums);
     }
     switch (type) {
       case "boolean": {
