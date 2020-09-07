@@ -50,7 +50,7 @@ public class FromInternet {
 
             @Override
             public boolean isGenerateMinimal() {
-              return true;
+              return false;
             }
           }, schemaStore, new Random(1)).generate(schema, 200);
           System.out.println("Data:");
