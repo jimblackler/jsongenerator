@@ -7,6 +7,7 @@ import static net.jimblackler.jsonschemafriend.Validator.validate;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.HashSet;
+import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
 import java.util.Random;
@@ -107,6 +108,8 @@ public class Fixer {
         } catch (MissingPathException e) {
           e.printStackTrace();
         }
+
+        break; // TODO: reconsider this.
       }
     }
     return object;
@@ -162,7 +165,7 @@ public class Fixer {
     }
 
     if (error instanceof NotError) {
-      return object;
+      return 0;
     }
 
     if (error instanceof MinItemsError) {
@@ -199,8 +202,9 @@ public class Fixer {
 
     if (error instanceof PatternError) {
       Ecma262Pattern pattern1 = schema.getPattern();
+      Random r2 = new Random(random.nextInt(10));  // Limited number to help detect lost causes.
       return PatternReverser.reverse(pattern1.toString(), getInt(schema.getMinLength(), 0),
-          getInt(schema.getMaxLength(), Integer.MAX_VALUE), random);
+          getInt(schema.getMaxLength(), Integer.MAX_VALUE), r2);
     }
 
     if (error instanceof MinLengthError) {
@@ -216,11 +220,27 @@ public class Fixer {
         jsonObject.put(entry.getKey(), 0);
       }
       while (jsonObject.length() < minProperties) {
-        jsonObject.put(randomString(random, 10), 0);
+        Collection<Ecma262Pattern> patternPropertiesPatterns = schema.getPatternPropertiesPatterns();
+        Collection<Schema> patternPropertiesSchema = schema.getPatternPropertiesSchema();
+        int index = random.nextInt(patternPropertiesPatterns.size());
+        Iterator<Ecma262Pattern> it0 = patternPropertiesPatterns.iterator();
+        Iterator<Schema> it1 = patternPropertiesSchema.iterator();
+        while (index > 0) {
+          it0.next();
+          it1.next();
+          index--;
+        }
+        Schema schema1 = it1.next();
+        if (!schema1.isFalse()) {
+          String pattern = it0.next().toString();
+
+          String str = PatternReverser.reverse(pattern, 1, Integer.MAX_VALUE, random);
+          jsonObject.put(str, 0);
+        }
       }
       return jsonObject;
     }
 
-    return object;
+    throw new IllegalStateException();
   }
 }
