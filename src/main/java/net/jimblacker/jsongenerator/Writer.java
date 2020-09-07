@@ -22,7 +22,7 @@ public class Writer {
     SchemaStore schemaStore = new SchemaStore();
     Schema schema = schemaStore.loadSchema(uri, defaultMetaSchema);
 
-    Object obj = new Generator(new Generator.Configuration() {
+    Object obj = new Generator(new Configuration() {
       @Override
       public boolean isPedanticTypes() {
         return false;

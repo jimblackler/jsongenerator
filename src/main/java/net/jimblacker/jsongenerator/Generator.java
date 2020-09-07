@@ -12,8 +12,19 @@ import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
 import java.util.Random;
+import net.jimblackler.jsonschemafriend.AnyOfValidationError;
+import net.jimblackler.jsonschemafriend.BelowMinItemsValidationError;
+import net.jimblackler.jsonschemafriend.ConstMismatchError;
 import net.jimblackler.jsonschemafriend.Ecma262Pattern;
 import net.jimblackler.jsonschemafriend.GenerationException;
+import net.jimblackler.jsonschemafriend.GreaterThanMaximumError;
+import net.jimblackler.jsonschemafriend.LessThanMinimumError;
+import net.jimblackler.jsonschemafriend.MissingPathException;
+import net.jimblackler.jsonschemafriend.MissingPropertyError;
+import net.jimblackler.jsonschemafriend.NotAMultipleError;
+import net.jimblackler.jsonschemafriend.NotValidationError;
+import net.jimblackler.jsonschemafriend.OneOfValidationError;
+import net.jimblackler.jsonschemafriend.PathUtils;
 import net.jimblackler.jsonschemafriend.Schema;
 import net.jimblackler.jsonschemafriend.SchemaStore;
 import net.jimblackler.jsonschemafriend.ValidationError;
@@ -72,22 +83,127 @@ public class Generator {
     random.setSeed(seed);
 
     Object object = generateUnvalidated(schema, maxTreeSize);
-    Collection<ValidationError> errors = new ArrayList<>();
-    validate(schema, object, errors::add);
-    if (!errors.isEmpty()) {
-      System.out.println("Object:");
-      if (object instanceof JSONObject) {
-        System.out.println(((JSONObject) object).toString(2));
-      } else if (object instanceof JSONArray) {
-        System.out.println(((JSONArray) object).toString(2));
-      } else {
-        System.out.println(object);
+    int attempts = 0;
+    while (true) {
+      Collection<ValidationError> errors = new ArrayList<>();
+      validate(schema, object, errors::add);
+      attempts++;
+      if (errors.isEmpty()) {
+        break;
       }
-      System.out.println();
-      for (ValidationError error : errors) {
-        System.out.println(error);
+      if (attempts == 5) {
+        System.out.println("Object:");
+        if (object instanceof JSONObject) {
+          System.out.println(((JSONObject) object).toString(2));
+        } else if (object instanceof JSONArray) {
+          System.out.println(((JSONArray) object).toString(2));
+        } else {
+          System.out.println(object);
+        }
+        System.out.println();
+        for (ValidationError error : errors) {
+          System.out.println(error);
+        }
+        break;
+      }
+      List<ValidationError> errorList = new ArrayList<>(errors);
+      while (!errorList.isEmpty()) {
+        ValidationError error = errorList.remove(0);
+
+        if (error instanceof AnyOfValidationError) {
+          AnyOfValidationError error1 = (AnyOfValidationError) error;
+          List<List<ValidationError>> allErrors = error1.getAllErrors();
+          int i = random.nextInt(allErrors.size());
+          // Pick one at random and fix the object to match it.
+          errorList.addAll(allErrors.get(i));
+          continue;
+        }
+
+        if (error instanceof OneOfValidationError) {
+          OneOfValidationError error1 = (OneOfValidationError) error;
+          if (error1.getNumberPassed() == 0) {
+            List<List<ValidationError>> allErrors = error1.getAllErrors();
+            int i = random.nextInt(allErrors.size());
+            // Pick one at random and fix the object to match it.
+            errorList.addAll(allErrors.get(i));
+            continue;
+          }
+        }
+
+        try {
+          Object objectToFix = PathUtils.fetchFromPath(object, error.getUri().getRawFragment());
+          Object fixed = fix(objectToFix, error);
+          if (objectToFix == object) {
+            object = fixed;
+          } else if (objectToFix != fixed) {
+            PathUtils.modifyAtPath(object, error.getUri().getRawFragment(), fixed);
+          }
+        } catch (MissingPathException e) {
+          e.printStackTrace();
+        }
       }
     }
+
+    return object;
+  }
+
+  private Object fix(Object object, ValidationError error) {
+    if (error instanceof ConstMismatchError) {
+      ConstMismatchError error1 = (ConstMismatchError) error;
+      return error1.getConst();
+    }
+    if (error instanceof MissingPropertyError) {
+      MissingPropertyError error1 = (MissingPropertyError) error;
+      String property = error1.getProperty();
+      Schema schema = error.getSchema().getProperties().get(property);
+      JSONObject jsonObject = (JSONObject) object;
+      try {
+        Object value = generate(schema, 50);
+        jsonObject.put(property, value);
+      } catch (JsonGeneratorException e) {
+        e.printStackTrace();
+      }
+      return object;
+    }
+    if (error instanceof NotAMultipleError) {
+      NotAMultipleError error1 = (NotAMultipleError) error;
+      Number multiple = error1.getMultiple();
+      Number objectAsNumber = (Number) object;
+      double v = multiple.doubleValue();
+      int multiples = (int) (objectAsNumber.doubleValue() / v);
+      return multiples * v;
+    }
+
+    if (error instanceof LessThanMinimumError) {
+      LessThanMinimumError error1 = (LessThanMinimumError) error;
+      return error1.getMinimum();
+    }
+
+    if (error instanceof GreaterThanMaximumError) {
+      GreaterThanMaximumError error1 = (GreaterThanMaximumError) error;
+      return error1.getMaximum();
+    }
+
+    if (error instanceof NotValidationError) {
+      return object;
+    }
+
+    if (error instanceof BelowMinItemsValidationError) {
+      BelowMinItemsValidationError error1 = (BelowMinItemsValidationError) error;
+      Schema additionalItemsSchema = error.getSchema().getAdditionalItems();
+      JSONArray array = (JSONArray) object;
+
+      try {
+        if (additionalItemsSchema == null) {
+          array.put(generate(anySchema, 50));
+        } else {
+          array.put(generate(additionalItemsSchema, 50));
+        }
+      } catch (JsonGeneratorException e) {
+        e.printStackTrace();
+      }
+    }
+
     return object;
   }
 
@@ -100,25 +216,25 @@ public class Generator {
     // Naive.
     Collection<Schema> allOf = schema.getAllOf();
     if (allOf != null && !allOf.isEmpty()) {
-      return generate(randomElement(random, allOf), maxTreeSize - 1);
+      return generateUnvalidated(randomElement(random, allOf), maxTreeSize - 1);
     }
 
     // Naive.
     Collection<Schema> anyOf = schema.getAnyOf();
     if (anyOf != null && !anyOf.isEmpty()) {
-      return generate(randomElement(random, anyOf), maxTreeSize - 1);
+      return generateUnvalidated(randomElement(random, anyOf), maxTreeSize - 1);
     }
 
     // Naive.
     Collection<Schema> oneOf = schema.getOneOf();
     if (oneOf != null && !oneOf.isEmpty()) {
-      return generate(randomElement(random, oneOf), maxTreeSize - 1);
+      return generateUnvalidated(randomElement(random, oneOf), maxTreeSize - 1);
     }
 
     // Naive.
     Schema then = schema.getThen();
     if (then != null) {
-      return generate(then, maxTreeSize - 1);
+      return generateUnvalidated(then, maxTreeSize - 1);
     }
 
     Collection<String> types =
@@ -241,7 +357,7 @@ public class Generator {
         Collection<Object> alreadyIncluded = new HashSet<>();
         JSONArray jsonArray = new JSONArray();
         for (Schema schema1 : schemas) {
-          Object value = generate(schema1, (maxTreeSize - 1) / length);
+          Object value = generateUnvalidated(schema1, (maxTreeSize - 1) / length);
           if (uniqueItems && !alreadyIncluded.add(value)) {
             continue;
           }
@@ -322,7 +438,7 @@ public class Generator {
           String propertyName = null;
 
           if (propertyNameSchema != null) {
-            Object propertyNameObject = generate(schema.getPropertyNames(), 1);
+            Object propertyNameObject = generateUnvalidated(schema.getPropertyNames(), 1);
             if (propertyNameObject instanceof String) {
               propertyName = (String) propertyNameObject;
             }
@@ -346,8 +462,9 @@ public class Generator {
             throw new IllegalStateException();
           }
           int size = jsonObject.keySet().size();
-          jsonObject.put(
-              key, generate(entries.getValue(), (maxTreeSize - 1) / schemas.entrySet().size()));
+          jsonObject.put(key,
+              generateUnvalidated(
+                  entries.getValue(), (maxTreeSize - 1) / schemas.entrySet().size()));
           if (jsonObject.keySet().size() != size + 1) {
             throw new IllegalStateException();
           }
@@ -373,10 +490,5 @@ public class Generator {
     // We don't aim to handle strings that won't survive URL encoding with standard methods.
     String urlEncoded = URLEncoder.encode(stringBuilder.toString());
     return URLDecoder.decode(urlEncoded);
-  }
-
-  public interface Configuration {
-    boolean isPedanticTypes();
-    boolean isGenerateNulls();
   }
 }

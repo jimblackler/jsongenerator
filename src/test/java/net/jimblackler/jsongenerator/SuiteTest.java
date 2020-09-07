@@ -22,6 +22,7 @@ import java.util.ArrayList;
 import java.util.Collection;
 import java.util.List;
 import java.util.Random;
+import net.jimblacker.jsongenerator.Configuration;
 import net.jimblacker.jsongenerator.Generator;
 import net.jimblackler.jsonschemafriend.DocumentSource;
 import net.jimblackler.jsonschemafriend.DocumentUtils;
@@ -127,7 +128,7 @@ public class SuiteTest {
         }
         System.out.println();
 
-        Object generated = new Generator(new Generator.Configuration() {
+        Object generated = new Generator(new Configuration() {
           @Override
           public boolean isPedanticTypes() {
             return false;
