@@ -1,11 +1,13 @@
 package net.jimblacker.jsongenerator;
 
+import static net.jimblacker.jsongenerator.StringUtils.randomString;
 import static net.jimblacker.jsongenerator.ValueUtils.getInt;
 import static net.jimblackler.jsonschemafriend.Validator.validate;
 
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.List;
+import java.util.Map;
 import java.util.Random;
 import net.jimblackler.jsonschemafriend.AnyOfError;
 import net.jimblackler.jsonschemafriend.ConstError;
@@ -15,6 +17,8 @@ import net.jimblackler.jsonschemafriend.ExclusiveMaximumError;
 import net.jimblackler.jsonschemafriend.ExclusiveMinimumError;
 import net.jimblackler.jsonschemafriend.MaximumError;
 import net.jimblackler.jsonschemafriend.MinItemsError;
+import net.jimblackler.jsonschemafriend.MinLengthError;
+import net.jimblackler.jsonschemafriend.MinPropertiesError;
 import net.jimblackler.jsonschemafriend.MinimumError;
 import net.jimblackler.jsonschemafriend.MissingPathException;
 import net.jimblackler.jsonschemafriend.MissingPropertyError;
@@ -39,7 +43,7 @@ public class Fixer {
       if (errors.isEmpty()) {
         break;
       }
-      if (attempts == 5) {
+      if (attempts == 15) {
         System.out.println("Object:");
         if (object instanceof JSONObject) {
           System.out.println(((JSONObject) object).toString(2));
@@ -69,13 +73,11 @@ public class Fixer {
 
         if (error instanceof OneOfError) {
           OneOfError error1 = (OneOfError) error;
-          if (error1.getNumberPassed() == 0) {
-            List<List<ValidationError>> allErrors = error1.getAllErrors();
-            int i = random.nextInt(allErrors.size());
-            // Pick one at random and fix the object to match it.
-            errorList.addAll(allErrors.get(i));
-            continue;
-          }
+          List<List<ValidationError>> allErrors = error1.getAllErrors();
+          int i = random.nextInt(allErrors.size());
+          // Pick one at random and fix the object to match it.
+          errorList.addAll(allErrors.get(i));
+          continue;
         }
 
         try {
@@ -108,6 +110,11 @@ public class Fixer {
       MissingPropertyError error1 = (MissingPropertyError) error;
       String property = error1.getProperty();
       Schema schema1 = error.getSchema().getProperties().get(property);
+      if (schema1 == null) {
+        // This can happen where 'required' property is not specified as a property explicitly.
+        schema1 = generator.getAnySchema();
+      }
+
       JSONObject jsonObject = (JSONObject) object;
       try {
         Object value = generator.generate(schema1, 50);
@@ -148,18 +155,22 @@ public class Fixer {
     }
 
     if (error instanceof MinItemsError) {
+      Schema itemsSchema = schema.getItems();
       Schema additionalItemsSchema = schema.getAdditionalItems();
       JSONArray array = (JSONArray) object;
 
       try {
-        if (additionalItemsSchema == null) {
-          array.put(generator.generate(generator.getAnySchema(), 50));
-        } else {
+        if (additionalItemsSchema != null) {
           array.put(generator.generate(additionalItemsSchema, 50));
+        } else if (itemsSchema != null) {
+          array.put(generator.generate(itemsSchema, 50));
+        } else {
+          array.put(generator.generate(generator.getAnySchema(), 50));
         }
       } catch (JsonGeneratorException e) {
         e.printStackTrace();
       }
+      return array;
     }
 
     if (error instanceof OneOfError) {
@@ -185,7 +196,7 @@ public class Fixer {
         case "null":
           return null;
         case "number":
-          return 0;
+          return 0.1;
         case "object":
           return new JSONObject();
         case "string":
@@ -198,6 +209,24 @@ public class Fixer {
       Ecma262Pattern pattern1 = schema.getPattern();
       return PatternReverser.reverse(pattern1.toString(), getInt(schema.getMinLength(), 0),
           getInt(schema.getMaxLength(), Integer.MAX_VALUE), random);
+    }
+
+    if (error instanceof MinLengthError) {
+      int minLength = getInt(schema.getMinLength(), 0);
+      return randomString(random, minLength);
+    }
+
+    if (error instanceof MinPropertiesError) {
+      int minProperties = schema.getMinProperties().intValue();
+      JSONObject jsonObject = (JSONObject) object;
+      Map<String, Schema> properties = schema.getProperties();
+      for (Map.Entry<String, Schema> entry : properties.entrySet()) {
+        jsonObject.put(entry.getKey(), 0);
+      }
+      while (jsonObject.length() < minProperties) {
+        jsonObject.put(randomString(random, 10), 0);
+      }
+      return jsonObject;
     }
 
     return object;

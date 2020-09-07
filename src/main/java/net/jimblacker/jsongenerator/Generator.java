@@ -1,11 +1,10 @@
 package net.jimblacker.jsongenerator;
 
+import static net.jimblacker.jsongenerator.Fixer.fixUp;
+import static net.jimblacker.jsongenerator.StringUtils.randomString;
 import static net.jimblacker.jsongenerator.ValueUtils.getDouble;
 import static net.jimblacker.jsongenerator.ValueUtils.getInt;
-import static net.jimblackler.jsonschemafriend.Validator.validate;
 
-import java.net.URLDecoder;
-import java.net.URLEncoder;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.HashMap;
@@ -55,7 +54,7 @@ public class Generator {
       object = generateUnvalidated(schema, maxTreeSize);
     }
 
-    return Fixer.fixUp(schema, object, this, random);
+    return fixUp(schema, object, this, random);
   }
 
   private Object generateUnvalidated(Schema schema, int maxTreeSize) {
@@ -150,7 +149,7 @@ public class Generator {
           return PatternReverser.reverse(pattern, minLength, maxLength, random);
         }
 
-        return randomString(length);
+        return randomString(random, length);
       }
       case "array": {
         List<Schema> schemas = new ArrayList<>();
@@ -296,7 +295,7 @@ public class Generator {
           }
 
           if (propertyName == null) {
-            propertyName = randomString(MAX_ADDITIONAL_PROPERTIES_KEY_LENGTH);
+            propertyName = randomString(random, MAX_ADDITIONAL_PROPERTIES_KEY_LENGTH);
           }
 
           if (additionalProperties == null) {
@@ -331,15 +330,5 @@ public class Generator {
       default:
         throw new IllegalStateException("Unknown type: " + type);
     }
-  }
-
-  private String randomString(int length) {
-    StringBuilder stringBuilder = new StringBuilder();
-    for (int idx = 0; idx != length; idx++) {
-      stringBuilder.append((char) random.nextInt());
-    }
-    // We don't aim to handle strings that won't survive URL encoding with standard methods.
-    String urlEncoded = URLEncoder.encode(stringBuilder.toString());
-    return URLDecoder.decode(urlEncoded);
   }
 }
