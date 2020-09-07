@@ -6,15 +6,18 @@ import static net.jimblackler.jsonschemafriend.Validator.validate;
 
 import java.util.ArrayList;
 import java.util.Collection;
+import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Random;
+import java.util.Set;
 import net.jimblackler.jsonschemafriend.AnyOfError;
 import net.jimblackler.jsonschemafriend.ConstError;
 import net.jimblackler.jsonschemafriend.Ecma262Pattern;
 import net.jimblackler.jsonschemafriend.EnumError;
 import net.jimblackler.jsonschemafriend.ExclusiveMaximumError;
 import net.jimblackler.jsonschemafriend.ExclusiveMinimumError;
+import net.jimblackler.jsonschemafriend.FalseSchemaError;
 import net.jimblackler.jsonschemafriend.MaximumError;
 import net.jimblackler.jsonschemafriend.MinItemsError;
 import net.jimblackler.jsonschemafriend.MinLengthError;
@@ -35,32 +38,45 @@ import org.json.JSONObject;
 
 public class Fixer {
   static Object fixUp(Schema schema, Object object, Generator generator, Random random) {
-    int attempts = 0;
+    int attempt = 0;
+    Set<String> considered = new HashSet<String>();
     while (true) {
       Collection<ValidationError> errors = new ArrayList<>();
       validate(schema, object, errors::add);
-      attempts++;
+
       if (errors.isEmpty()) {
         break;
       }
-      if (attempts == 15) {
-        System.out.println("Object:");
-        if (object instanceof JSONObject) {
-          System.out.println(((JSONObject) object).toString(2));
-        } else if (object instanceof JSONArray) {
-          System.out.println(((JSONArray) object).toString(2));
-        } else {
-          System.out.println(object);
-        }
-        System.out.println();
-        for (ValidationError error : errors) {
-          System.out.println(error);
-        }
+
+      attempt++;
+      System.out.println("Attempt " + attempt + ":");
+      if (object instanceof JSONObject) {
+        System.out.println(((JSONObject) object).toString(2));
+      } else if (object instanceof JSONArray) {
+        System.out.println(((JSONArray) object).toString(2));
+      } else {
+        System.out.println(object);
+      }
+      System.out.println();
+      for (ValidationError error : errors) {
+        System.out.println(error);
+      }
+      System.out.println();
+
+      if (!considered.add(object.toString())) {
         break;
       }
       List<ValidationError> errorList = new ArrayList<>(errors);
       while (!errorList.isEmpty()) {
         ValidationError error = errorList.remove(0);
+        if (error instanceof FalseSchemaError) {
+          try {
+            PathUtils.deleteAtPath(object, error.getUri().getRawFragment());
+          } catch (MissingPathException e) {
+            e.printStackTrace();
+          }
+          continue;
+        }
 
         if (error instanceof AnyOfError) {
           AnyOfError error1 = (AnyOfError) error;
@@ -116,12 +132,7 @@ public class Fixer {
       }
 
       JSONObject jsonObject = (JSONObject) object;
-      try {
-        Object value = generator.generate(schema1, 50);
-        jsonObject.put(property, value);
-      } catch (JsonGeneratorException e) {
-        e.printStackTrace();
-      }
+      jsonObject.put(property, 0);
       return object;
     }
     if (error instanceof MultipleError) {
@@ -155,30 +166,11 @@ public class Fixer {
     }
 
     if (error instanceof MinItemsError) {
-      Schema itemsSchema = schema.getItems();
-      Schema additionalItemsSchema = schema.getAdditionalItems();
       JSONArray array = (JSONArray) object;
-
-      try {
-        if (additionalItemsSchema != null) {
-          array.put(generator.generate(additionalItemsSchema, 50));
-        } else if (itemsSchema != null) {
-          array.put(generator.generate(itemsSchema, 50));
-        } else {
-          array.put(generator.generate(generator.getAnySchema(), 50));
-        }
-      } catch (JsonGeneratorException e) {
-        e.printStackTrace();
+      while (array.length() < schema.getMinItems().intValue()) {
+        array.put(0);
       }
       return array;
-    }
-
-    if (error instanceof OneOfError) {
-      try {
-        return generator.generate(generator.getAnySchema(), 5);
-      } catch (JsonGeneratorException e) {
-        e.printStackTrace();
-      }
     }
 
     if (error instanceof TypeError) {
