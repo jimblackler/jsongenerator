@@ -1,5 +1,7 @@
 package net.jimblacker.jsongenerator;
 
+import static net.jimblacker.jsongenerator.ValueUtils.getDouble;
+import static net.jimblacker.jsongenerator.ValueUtils.getInt;
 import static net.jimblackler.jsonschemafriend.Validator.validate;
 
 import java.net.URLDecoder;
@@ -31,20 +33,6 @@ public class Generator {
     this.configuration = configuration;
     this.random = random;
     anySchema = schemaStore.loadSchema(true);
-  }
-
-  private static int getInt(Number number, int _default) {
-    if (number == null) {
-      return _default;
-    }
-    return number.intValue();
-  }
-
-  private static double getDouble(Number number, double _default) {
-    if (number == null) {
-      return _default;
-    }
-    return number.doubleValue();
   }
 
   public Schema getAnySchema() {

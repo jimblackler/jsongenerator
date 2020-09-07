@@ -1,5 +1,6 @@
 package net.jimblacker.jsongenerator;
 
+import static net.jimblacker.jsongenerator.ValueUtils.getInt;
 import static net.jimblackler.jsonschemafriend.Validator.validate;
 
 import java.util.ArrayList;
@@ -8,6 +9,7 @@ import java.util.List;
 import java.util.Random;
 import net.jimblackler.jsonschemafriend.AnyOfError;
 import net.jimblackler.jsonschemafriend.ConstError;
+import net.jimblackler.jsonschemafriend.Ecma262Pattern;
 import net.jimblackler.jsonschemafriend.EnumError;
 import net.jimblackler.jsonschemafriend.ExclusiveMaximumError;
 import net.jimblackler.jsonschemafriend.ExclusiveMinimumError;
@@ -20,6 +22,7 @@ import net.jimblackler.jsonschemafriend.MultipleError;
 import net.jimblackler.jsonschemafriend.NotError;
 import net.jimblackler.jsonschemafriend.OneOfError;
 import net.jimblackler.jsonschemafriend.PathUtils;
+import net.jimblackler.jsonschemafriend.PatternError;
 import net.jimblackler.jsonschemafriend.Schema;
 import net.jimblackler.jsonschemafriend.TypeError;
 import net.jimblackler.jsonschemafriend.ValidationError;
@@ -189,6 +192,12 @@ public class Fixer {
           return "";
         default:
       }
+    }
+
+    if (error instanceof PatternError) {
+      Ecma262Pattern pattern1 = schema.getPattern();
+      return PatternReverser.reverse(pattern1.toString(), getInt(schema.getMinLength(), 0),
+          getInt(schema.getMaxLength(), Integer.MAX_VALUE), random);
     }
 
     return object;
