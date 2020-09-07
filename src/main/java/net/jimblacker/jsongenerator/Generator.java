@@ -264,10 +264,6 @@ public class Generator {
             if (!schema1.isFalse()) {
               String pattern = it0.next().toString();
 
-              if (pattern.startsWith("^")) {
-                pattern = pattern.substring("^".length());
-              }
-
               String str = PatternReverser.reverse(pattern, 1, Integer.MAX_VALUE, random);
               if (schemas.containsKey(str)) {
                 // Probably an inflexible pattern. Let's just give up.
