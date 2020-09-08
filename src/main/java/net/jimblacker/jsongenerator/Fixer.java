@@ -36,6 +36,7 @@ import net.jimblackler.jsonschemafriend.PathUtils;
 import net.jimblackler.jsonschemafriend.PatternError;
 import net.jimblackler.jsonschemafriend.Schema;
 import net.jimblackler.jsonschemafriend.TypeError;
+import net.jimblackler.jsonschemafriend.UniqueItemsError;
 import net.jimblackler.jsonschemafriend.ValidationError;
 import org.json.JSONArray;
 import org.json.JSONObject;
@@ -264,6 +265,19 @@ public class Fixer {
         jsonObject.remove(propertyName);
       }
       return jsonObject;
+    }
+
+    if (error instanceof UniqueItemsError) {
+      JSONArray jsonArray = (JSONArray) object;
+      JSONArray out = new JSONArray();
+      Set<String> included = new HashSet<>();
+      for (int idx = 0; idx != jsonArray.length(); idx++) {
+        Object obj = jsonArray.get(idx);
+        if (included.add(obj.toString())) {
+          out.put(obj);
+        }
+      }
+      return out;
     }
 
     throw new IllegalStateException();
