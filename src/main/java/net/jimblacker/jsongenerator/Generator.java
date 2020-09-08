@@ -9,6 +9,7 @@ import static net.jimblacker.jsongenerator.ValueUtils.getLong;
 import java.io.IOException;
 import java.util.ArrayList;
 import java.util.Collection;
+import java.util.Collections;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.Iterator;
@@ -25,7 +26,7 @@ import org.json.JSONObject;
 
 public class Generator {
   private static final int MAX_STRING_LENGTH = 60;
-  private static final int MAX_ADDITIONAL_PROPERTIES_KEY_LENGTH = 30;
+  private static final int MAX_ADDITIONAL_PROPERTIES_KEY_LENGTH = 50;
   private final Configuration configuration;
   private final Random random;
   private final PatternReverser patternReverser;
@@ -170,16 +171,18 @@ public class Generator {
       }
       case "string": {
         long minLength = getLong(schema.getMinLength(), 0);
-        long maxLength = getLong(schema.getMaxLength(), Integer.MAX_VALUE);
+        long maxLength = getLong(schema.getMaxLength(), Integer.MAX_VALUE - 1);
+        if (!schema.getExclusiveMaximumBoolean()) {
+          maxLength++;
+        }
         long useMaxLength = Math.min(maxLength, minLength + MAX_STRING_LENGTH);
-        long length = random.nextInt((int) (useMaxLength - minLength + 1)) + minLength;
         Ecma262Pattern pattern1 = schema.getPattern();
         String pattern = pattern1 == null ? null : pattern1.toString();
         if (pattern != null) {
           return patternReverser.reverse(pattern, random);
         }
 
-        return randomString(random, (int) length);
+        return randomString(random, (int) minLength, (int) useMaxLength);
       }
       case "array": {
         List<Schema> schemas = new ArrayList<>();
@@ -249,23 +252,6 @@ public class Generator {
         Map<String, Schema> schemas = new HashMap<>();
         Map<String, Schema> properties = schema.getProperties();
         Collection<String> requiredProperties = schema.getRequiredProperties();
-        Collection<String> allProperties = new ArrayList<>();
-        allProperties.addAll(requiredProperties);
-        allProperties.addAll(properties.keySet());
-        for (String property : allProperties) {
-          if (requiredProperties.contains(property) || (random.nextBoolean() && maxTreeSize > 0)) {
-            Schema schema1 = properties.get(property);
-            if (schema1 == null) {
-              schema1 = anySchema;
-            }
-            schemas.put(property, schema1);
-          }
-        }
-
-        Collection<Ecma262Pattern> patternPropertiesPatterns =
-            schema.getPatternPropertiesPatterns();
-        Schema additionalProperties = schema.getAdditionalProperties();
-        Schema propertyNameSchema = schema.getPropertyNames();
 
         long minProperties = getLong(schema.getMinProperties(), 0);
         long maxProperties = getLong(schema.getMaxProperties(), Integer.MAX_VALUE);
@@ -278,6 +264,36 @@ public class Generator {
         if (length > maxProperties) {
           length = maxProperties;
         }
+
+        for (String property : requiredProperties) {
+          Schema schema1 = properties.get(property);
+          if (schema1 == null) {
+            schema1 = anySchema;
+          }
+          schemas.put(property, schema1);
+        }
+
+        List<String> nonRequired = new ArrayList<>(properties.keySet());
+        nonRequired.removeAll(requiredProperties);
+        Collections.shuffle(nonRequired, random);
+
+        for (String property : nonRequired) {
+          if (schemas.size() >= length) {
+            break;
+          }
+          if (random.nextBoolean()) {
+            Schema schema1 = properties.get(property);
+            if (schema1 == null) {
+              schema1 = anySchema;
+            }
+            schemas.put(property, schema1);
+          }
+        }
+
+        Collection<Ecma262Pattern> patternPropertiesPatterns =
+            schema.getPatternPropertiesPatterns();
+        Schema additionalProperties = schema.getAdditionalProperties();
+        Schema propertyNameSchema = schema.getPropertyNames();
 
         while (schemas.keySet().size() < length) {
           if (patternPropertiesPatterns != null && !patternPropertiesPatterns.isEmpty()) {
@@ -321,7 +337,7 @@ public class Generator {
           }
 
           if (propertyName == null) {
-            propertyName = randomString(random, MAX_ADDITIONAL_PROPERTIES_KEY_LENGTH);
+            propertyName = randomString(random, 1, MAX_ADDITIONAL_PROPERTIES_KEY_LENGTH);
           }
 
           if (additionalProperties == null) {
@@ -333,6 +349,7 @@ public class Generator {
             }
           } else {
             schemas.put(propertyName, additionalProperties);
+            continue;
           }
         }
 
