@@ -5,6 +5,9 @@ import org.json.JSONObject;
 
 public class JsonUtils {
   public static String toString(Object object) {
+    if (object == null) {
+      return "null";
+    }
     if (object instanceof JSONObject) {
       return ((JSONObject) object).toString(2);
     }
