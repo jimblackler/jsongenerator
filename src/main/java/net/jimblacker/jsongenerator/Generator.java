@@ -237,7 +237,7 @@ public class Generator {
         Collection<Object> alreadyIncluded = new HashSet<>();
         JSONArray jsonArray = new JSONArray();
         for (Schema schema1 : schemas) {
-          Object value = generateUnvalidated(schema1, random.nextInt(maxTreeSize / 2 + 1) + maxTreeSize / 2);
+          Object value = generateUnvalidated(schema1, (int) (0.7f * maxTreeSize));
           if (uniqueItems && !alreadyIncluded.add(value)) {
             continue;
           }
@@ -326,6 +326,11 @@ public class Generator {
 
           if (additionalProperties == null) {
             schemas.put(propertyName, anySchema);
+            if (random.nextBoolean()) {
+              // We don't want to generate too many of these, as they look like gibberish, and one
+              // or two makes the point.
+              break;
+            }
           } else {
             schemas.put(propertyName, additionalProperties);
           }
@@ -340,7 +345,7 @@ public class Generator {
           int size = jsonObject.keySet().size();
           jsonObject.put(key,
               generateUnvalidated(
-                  entries.getValue(), random.nextInt(maxTreeSize / 2 + 1) + maxTreeSize / 2));
+                  entries.getValue(), (int) (0.7f * maxTreeSize)));
           if (jsonObject.keySet().size() != size + 1) {
             throw new IllegalStateException();
           }
