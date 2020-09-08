@@ -52,7 +52,7 @@ public class FromInternet {
             public boolean isGenerateMinimal() {
               return false;
             }
-          }, schemaStore, new Random(1)).generate(schema, 200);
+          }, schemaStore, new Random(1)).generate(schema, 20);
           System.out.println("Data:");
           System.out.println(JsonUtils.toString(object));
           System.out.println();

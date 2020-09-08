@@ -2,7 +2,7 @@ package net.jimblacker.jsongenerator;
 
 import static net.jimblacker.jsongenerator.CollectionUtils.randomElement;
 import static net.jimblacker.jsongenerator.StringUtils.randomString;
-import static net.jimblacker.jsongenerator.ValueUtils.getInt;
+import static net.jimblacker.jsongenerator.ValueUtils.getLong;
 import static net.jimblackler.jsonschemafriend.Validator.validate;
 
 import java.util.ArrayList;
@@ -54,15 +54,18 @@ public class Fixer {
       }
 
       attempt++;
+
       System.out.println("Attempt " + attempt + ":");
-      if (object instanceof JSONObject) {
-        System.out.println(((JSONObject) object).toString(2));
-      } else if (object instanceof JSONArray) {
-        System.out.println(((JSONArray) object).toString(2));
-      } else {
-        System.out.println(object);
+      if (false) {
+        if (object instanceof JSONObject) {
+          System.out.println(((JSONObject) object).toString(2));
+        } else if (object instanceof JSONArray) {
+          System.out.println(((JSONArray) object).toString(2));
+        } else {
+          System.out.println(object);
+        }
+        System.out.println();
       }
-      System.out.println();
       for (ValidationError error : errors) {
         System.out.println(error);
       }
@@ -216,8 +219,8 @@ public class Fixer {
     }
 
     if (error instanceof MinLengthError) {
-      int minLength = getInt(schema.getMinLength(), 0);
-      return randomString(random, minLength);
+      long minLength = getLong(schema.getMinLength(), 0);
+      return randomString(random, (int) minLength);
     }
 
     if (error instanceof MinPropertiesError) {

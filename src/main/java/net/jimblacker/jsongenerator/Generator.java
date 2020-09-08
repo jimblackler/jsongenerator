@@ -4,7 +4,7 @@ import static net.jimblacker.jsongenerator.CollectionUtils.randomElement;
 import static net.jimblacker.jsongenerator.Fixer.fixUp;
 import static net.jimblacker.jsongenerator.StringUtils.randomString;
 import static net.jimblacker.jsongenerator.ValueUtils.getDouble;
-import static net.jimblacker.jsongenerator.ValueUtils.getInt;
+import static net.jimblacker.jsongenerator.ValueUtils.getLong;
 
 import java.io.IOException;
 import java.util.ArrayList;
@@ -76,25 +76,25 @@ public class Generator {
     // Naive.
     Collection<Schema> allOf = schema.getAllOf();
     if (allOf != null && !allOf.isEmpty()) {
-      return generateUnvalidated(randomElement(random, allOf), maxTreeSize - 1);
+      return generateUnvalidated(randomElement(random, allOf), maxTreeSize);
     }
 
     // Naive.
     Collection<Schema> anyOf = schema.getAnyOf();
     if (anyOf != null && !anyOf.isEmpty()) {
-      return generateUnvalidated(randomElement(random, anyOf), maxTreeSize - 1);
+      return generateUnvalidated(randomElement(random, anyOf), maxTreeSize);
     }
 
     // Naive.
     Collection<Schema> oneOf = schema.getOneOf();
     if (oneOf != null && !oneOf.isEmpty()) {
-      return generateUnvalidated(randomElement(random, oneOf), maxTreeSize - 1);
+      return generateUnvalidated(randomElement(random, oneOf), maxTreeSize);
     }
 
     // Naive.
     Schema then = schema.getThen();
     if (then != null) {
-      return generateUnvalidated(then, maxTreeSize - 1);
+      return generateUnvalidated(then, maxTreeSize);
     }
 
     Collection<String> types =
@@ -151,8 +151,14 @@ public class Generator {
         return value;
       }
       case "integer": {
-        long minimum = getInt(schema.getMinimum(), Integer.MIN_VALUE);
-        long maximum = getInt(schema.getMaximum(), Integer.MAX_VALUE);
+        long minimum = getLong(schema.getMinimum(), Integer.MIN_VALUE);
+        long maximum = getLong(schema.getMaximum(), Integer.MAX_VALUE -1);
+        if (!schema.getExclusiveMaximumBoolean()) {
+          maximum++;
+        }
+        if (maximum - minimum == 0) {
+          throw new IllegalStateException();
+        }
         long value = Math.abs(random.nextLong()) % (maximum - minimum) + minimum;
         if (schema.getMultipleOf() != null) {
           int multipleOf = schema.getMultipleOf().intValue();
@@ -163,25 +169,25 @@ public class Generator {
         return value;
       }
       case "string": {
-        int minLength = getInt(schema.getMinLength(), 0);
-        int maxLength = getInt(schema.getMaxLength(), Integer.MAX_VALUE);
-        int useMaxLength = Math.min(maxLength, minLength + MAX_STRING_LENGTH);
-        int length = random.nextInt(useMaxLength - minLength + 1) + minLength;
+        long minLength = getLong(schema.getMinLength(), 0);
+        long maxLength = getLong(schema.getMaxLength(), Integer.MAX_VALUE);
+        long useMaxLength = Math.min(maxLength, minLength + MAX_STRING_LENGTH);
+        long length = random.nextInt((int) (useMaxLength - minLength + 1)) + minLength;
         Ecma262Pattern pattern1 = schema.getPattern();
         String pattern = pattern1 == null ? null : pattern1.toString();
         if (pattern != null) {
           return patternReverser.reverse(pattern, random);
         }
 
-        return randomString(random, length);
+        return randomString(random, (int) length);
       }
       case "array": {
         List<Schema> schemas = new ArrayList<>();
 
-        int minItems = getInt(schema.getMinItems(), 0);
-        int maxItems = getInt(schema.getMaxItems(), Integer.MAX_VALUE);
+        long minItems = getLong(schema.getMinItems(), 0);
+        long maxItems = getLong(schema.getMaxItems(), Integer.MAX_VALUE);
 
-        int length = random.nextInt(random.nextInt(Math.max(maxTreeSize, 0) + 1) + 1);
+        long length = random.nextInt(Math.max(maxTreeSize, 0) + 1);
         if (length < minItems) {
           length = minItems;
         }
@@ -231,7 +237,7 @@ public class Generator {
         Collection<Object> alreadyIncluded = new HashSet<>();
         JSONArray jsonArray = new JSONArray();
         for (Schema schema1 : schemas) {
-          Object value = generateUnvalidated(schema1, (maxTreeSize - 1) / length);
+          Object value = generateUnvalidated(schema1, random.nextInt(maxTreeSize / 2 + 1) + maxTreeSize / 2);
           if (uniqueItems && !alreadyIncluded.add(value)) {
             continue;
           }
@@ -261,10 +267,10 @@ public class Generator {
         Schema additionalProperties = schema.getAdditionalProperties();
         Schema propertyNameSchema = schema.getPropertyNames();
 
-        int minProperties = getInt(schema.getMinProperties(), 0);
-        int maxProperties = getInt(schema.getMaxProperties(), Integer.MAX_VALUE);
+        long minProperties = getLong(schema.getMinProperties(), 0);
+        long maxProperties = getLong(schema.getMaxProperties(), Integer.MAX_VALUE);
 
-        int length = random.nextInt(random.nextInt(Math.max(maxTreeSize, 0) + 1) + 1);
+        long length = random.nextInt(Math.max(maxTreeSize, 0) + 1);
         if (length < minProperties) {
           length = minProperties;
         }
@@ -334,7 +340,7 @@ public class Generator {
           int size = jsonObject.keySet().size();
           jsonObject.put(key,
               generateUnvalidated(
-                  entries.getValue(), (maxTreeSize - 1) / schemas.entrySet().size()));
+                  entries.getValue(), random.nextInt(maxTreeSize / 2 + 1) + maxTreeSize / 2));
           if (jsonObject.keySet().size() != size + 1) {
             throw new IllegalStateException();
           }

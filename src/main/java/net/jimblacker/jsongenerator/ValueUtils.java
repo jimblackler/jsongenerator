@@ -1,11 +1,11 @@
 package net.jimblacker.jsongenerator;
 
 public class ValueUtils {
-  static int getInt(Number number, int _default) {
+  static long getLong(Number number, long _default) {
     if (number == null) {
       return _default;
     }
-    return number.intValue();
+    return number.longValue();
   }
 
   static double getDouble(Number number, double _default) {
