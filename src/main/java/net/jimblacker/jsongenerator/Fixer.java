@@ -21,6 +21,7 @@ import net.jimblackler.jsonschemafriend.EnumError;
 import net.jimblackler.jsonschemafriend.ExclusiveMaximumError;
 import net.jimblackler.jsonschemafriend.ExclusiveMinimumError;
 import net.jimblackler.jsonschemafriend.FalseSchemaError;
+import net.jimblackler.jsonschemafriend.MaxLengthError;
 import net.jimblackler.jsonschemafriend.MaxPropertiesError;
 import net.jimblackler.jsonschemafriend.MaximumError;
 import net.jimblackler.jsonschemafriend.MinItemsError;
@@ -219,9 +220,9 @@ public class Fixer {
       return patternReverser.reverse(pattern1.toString(), r2);
     }
 
-    if (error instanceof MinLengthError) {
+    if (error instanceof MinLengthError || error instanceof MaxLengthError) {
       long minLength = getLong(schema.getMinLength(), 0);
-      return randomString(random, (int) minLength);
+      return randomString(random, (int) minLength, (int) minLength + 5);
     }
 
     if (error instanceof MinPropertiesError) {
@@ -236,7 +237,7 @@ public class Fixer {
             schema.getPatternPropertiesPatterns();
         Collection<Schema> patternPropertiesSchema = schema.getPatternPropertiesSchema();
         if (patternPropertiesPatterns.isEmpty()) {
-          jsonObject.put(randomString(random, 5), 0);
+          jsonObject.put(randomString(random, 1, 20), 0);
         } else {
           int index = random.nextInt(patternPropertiesPatterns.size());
           Iterator<Ecma262Pattern> it0 = patternPropertiesPatterns.iterator();
