@@ -170,7 +170,7 @@ public class Generator {
         Ecma262Pattern pattern1 = schema.getPattern();
         String pattern = pattern1 == null ? null : pattern1.toString();
         if (pattern != null) {
-          return patternReverser.reverse(pattern, minLength, maxLength, random);
+          return patternReverser.reverse(pattern, random);
         }
 
         return randomString(random, length);
@@ -288,7 +288,7 @@ public class Generator {
             if (!schema1.isFalse()) {
               String pattern = it0.next().toString();
 
-              String str = patternReverser.reverse(pattern, 1, Integer.MAX_VALUE, random);
+              String str = patternReverser.reverse(pattern, random);
               if (schemas.containsKey(str)) {
                 // Probably an inflexible pattern. Let's just give up.
                 break;

@@ -212,8 +212,7 @@ public class Fixer {
     if (error instanceof PatternError) {
       Ecma262Pattern pattern1 = schema.getPattern();
       Random r2 = new Random(random.nextInt(10)); // Limited number to help detect lost causes.
-      return patternReverser.reverse(pattern1.toString(), getInt(schema.getMinLength(), 0),
-          getInt(schema.getMaxLength(), Integer.MAX_VALUE), r2);
+      return patternReverser.reverse(pattern1.toString(), r2);
     }
 
     if (error instanceof MinLengthError) {
@@ -246,7 +245,7 @@ public class Fixer {
           Schema schema1 = it1.next();
           if (!schema1.isFalse()) {
             String pattern = it0.next().toString();
-            String str = patternReverser.reverse(pattern, 1, Integer.MAX_VALUE, random);
+            String str = patternReverser.reverse(pattern, random);
             jsonObject.put(str, 0);
           }
         }
