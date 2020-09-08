@@ -49,7 +49,7 @@ public class Test {
       public boolean isGenerateMinimal() {
         return true;
       }
-    }, schemaStore, new Random(1)).generate(schema, 250);
+    }, schemaStore, new Random(1)).generate(schema, 16);
 
     validate(schema, object);
     try (BufferedWriter writer =

@@ -143,7 +143,7 @@ public class SuiteTest {
           public boolean isGenerateMinimal() {
             return false;
           }
-        }, schemaStore, new Random(1)).generate(schema1, 500);
+        }, schemaStore, new Random(1)).generate(schema1, 16);
 
         if (generated instanceof JSONObject) {
           System.out.println(((JSONObject) generated).toString(2));
