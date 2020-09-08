@@ -41,8 +41,8 @@ import org.json.JSONArray;
 import org.json.JSONObject;
 
 public class Fixer {
-  static Object fixUp(Schema schema, Object object, Generator generator, Random random)
-      throws MissingPathException {
+  static Object fixUp(Schema schema, Object object, Generator generator, Random random,
+      PatternReverser patternReverser) throws MissingPathException {
     int attempt = 0;
     Set<String> considered = new HashSet<>();
     while (true) {
@@ -103,7 +103,7 @@ public class Fixer {
 
         try {
           Object objectToFix = PathUtils.fetchFromPath(object, error.getUri().getRawFragment());
-          Object fixed = fix(objectToFix, error, generator, random);
+          Object fixed = fix(objectToFix, error, generator, random, patternReverser);
           if (objectToFix == object) {
             object = fixed;
           } else if (objectToFix != fixed) {
@@ -119,8 +119,8 @@ public class Fixer {
     return object;
   }
 
-  private static Object fix(
-      Object object, ValidationError error, Generator generator, Random random) {
+  private static Object fix(Object object, ValidationError error, Generator generator,
+      Random random, PatternReverser patternReverser) {
     Schema schema = error.getSchema();
     if (error instanceof ConstError) {
       return schema.getConst();
@@ -212,7 +212,7 @@ public class Fixer {
     if (error instanceof PatternError) {
       Ecma262Pattern pattern1 = schema.getPattern();
       Random r2 = new Random(random.nextInt(10)); // Limited number to help detect lost causes.
-      return PatternReverser.reverse(pattern1.toString(), getInt(schema.getMinLength(), 0),
+      return patternReverser.reverse(pattern1.toString(), getInt(schema.getMinLength(), 0),
           getInt(schema.getMaxLength(), Integer.MAX_VALUE), r2);
     }
 
@@ -246,7 +246,7 @@ public class Fixer {
           Schema schema1 = it1.next();
           if (!schema1.isFalse()) {
             String pattern = it0.next().toString();
-            String str = PatternReverser.reverse(pattern, 1, Integer.MAX_VALUE, random);
+            String str = patternReverser.reverse(pattern, 1, Integer.MAX_VALUE, random);
             jsonObject.put(str, 0);
           }
         }

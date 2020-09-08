@@ -6,6 +6,7 @@ import static net.jimblacker.jsongenerator.StringUtils.randomString;
 import static net.jimblacker.jsongenerator.ValueUtils.getDouble;
 import static net.jimblacker.jsongenerator.ValueUtils.getInt;
 
+import java.io.IOException;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.HashMap;
@@ -27,6 +28,7 @@ public class Generator {
   private static final int MAX_ADDITIONAL_PROPERTIES_KEY_LENGTH = 30;
   private final Configuration configuration;
   private final Random random;
+  private final PatternReverser patternReverser;
   private final Schema anySchema;
 
   public Generator(Configuration configuration, SchemaStore schemaStore, Random random)
@@ -34,6 +36,11 @@ public class Generator {
     this.configuration = configuration;
     this.random = random;
     anySchema = schemaStore.loadSchema(true);
+    try {
+      patternReverser = new PatternReverser();
+    } catch (IOException e) {
+      throw new GenerationException(e);
+    }
   }
 
   public Schema getAnySchema() {
@@ -57,7 +64,7 @@ public class Generator {
       object = generateUnvalidated(schema, maxTreeSize);
     }
 
-    return fixUp(schema, object, this, random);
+    return fixUp(schema, object, this, random, patternReverser);
   }
 
   private Object generateUnvalidated(Schema schema, int maxTreeSize) {
@@ -163,7 +170,7 @@ public class Generator {
         Ecma262Pattern pattern1 = schema.getPattern();
         String pattern = pattern1 == null ? null : pattern1.toString();
         if (pattern != null) {
-          return PatternReverser.reverse(pattern, minLength, maxLength, random);
+          return patternReverser.reverse(pattern, minLength, maxLength, random);
         }
 
         return randomString(random, length);
@@ -281,7 +288,7 @@ public class Generator {
             if (!schema1.isFalse()) {
               String pattern = it0.next().toString();
 
-              String str = PatternReverser.reverse(pattern, 1, Integer.MAX_VALUE, random);
+              String str = patternReverser.reverse(pattern, 1, Integer.MAX_VALUE, random);
               if (schemas.containsKey(str)) {
                 // Probably an inflexible pattern. Let's just give up.
                 break;
