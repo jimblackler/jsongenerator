@@ -31,6 +31,8 @@ public class FromInternet {
         String str = array.getString(idx);
         testsOut.add(DynamicTest.dynamicTest(str, () -> {
           URI uri = URI.create(str);
+          System.out.println(uri);
+          System.out.println();
           SchemaStore schemaStore = new SchemaStore();
           Schema schema = schemaStore.loadSchema(uri, DEFAULT_METASCHEMA);
           System.out.println("Schema:");
