@@ -26,7 +26,6 @@ public class PatternReverser {
   }
 
   public String reverse(String pattern, Random random) {
-    // TODO: use random seed, at least.
     scriptEngine.put("pattern", pattern);
     scriptEngine.put("seed", random.nextInt());
 
