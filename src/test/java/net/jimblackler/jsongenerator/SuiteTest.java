@@ -143,6 +143,11 @@ public class SuiteTest {
           public boolean isGenerateMinimal() {
             return false;
           }
+
+          @Override
+          public float nonRequiredPropertyChance() {
+            return 0.5f;
+          }
         }, schemaStore, new Random(1)).generate(schema1, 16);
 
         if (generated instanceof JSONObject) {

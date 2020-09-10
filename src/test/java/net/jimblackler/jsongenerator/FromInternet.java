@@ -20,6 +20,7 @@ import org.junit.jupiter.api.TestFactory;
 public class FromInternet {
   private static final URI DEFAULT_METASCHEMA =
       URI.create("http://json-schema.org/draft-07/schema#");
+
   @TestFactory
   Collection<DynamicTest> all() throws IOException {
     Collection<DynamicTest> testsOut = new ArrayList<>();
@@ -53,6 +54,11 @@ public class FromInternet {
             @Override
             public boolean isGenerateMinimal() {
               return false;
+            }
+
+            @Override
+            public float nonRequiredPropertyChance() {
+              return 0.5f;
             }
           }, schemaStore, new Random(1)).generate(schema, 20);
           System.out.println("Data:");

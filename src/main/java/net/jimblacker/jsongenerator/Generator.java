@@ -59,9 +59,6 @@ public class Generator {
     if (configuration.isGenerateMinimal()) {
       object = 1;
     } else {
-      int seed = random.nextInt();
-      random.setSeed(seed);
-
       object = generateUnvalidated(schema, maxTreeSize);
     }
 
@@ -104,10 +101,10 @@ public class Generator {
     types = new HashSet<>(types);
 
     if (maxTreeSize < 1) {
-      if (types.size() > 1 && types.contains("array")) {
+      if (types.size() > 1) {
         types.remove("array");
       }
-      if (types.size() > 1 && types.contains("object")) {
+      if (types.size() > 1) {
         types.remove("object");
       }
     }
@@ -153,7 +150,7 @@ public class Generator {
       }
       case "integer": {
         long minimum = getLong(schema.getMinimum(), Integer.MIN_VALUE);
-        long maximum = getLong(schema.getMaximum(), Integer.MAX_VALUE -1);
+        long maximum = getLong(schema.getMaximum(), Integer.MAX_VALUE - 1);
         if (!schema.getExclusiveMaximumBoolean()) {
           maximum++;
         }
@@ -281,7 +278,7 @@ public class Generator {
           if (schemas.size() >= length) {
             break;
           }
-          if (random.nextBoolean()) {
+          if (random.nextFloat() < configuration.nonRequiredPropertyChance()) {
             Schema schema1 = properties.get(property);
             if (schema1 == null) {
               schema1 = anySchema;
@@ -360,9 +357,7 @@ public class Generator {
             throw new IllegalStateException();
           }
           int size = jsonObject.keySet().size();
-          jsonObject.put(key,
-              generateUnvalidated(
-                  entries.getValue(), (int) (0.7f * maxTreeSize)));
+          jsonObject.put(key, generateUnvalidated(entries.getValue(), (int) (0.7f * maxTreeSize)));
           if (jsonObject.keySet().size() != size + 1) {
             throw new IllegalStateException();
           }

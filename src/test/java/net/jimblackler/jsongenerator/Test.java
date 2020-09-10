@@ -7,7 +7,6 @@ import java.io.FileWriter;
 import java.io.IOException;
 import java.net.URI;
 import java.net.URISyntaxException;
-import java.nio.charset.StandardCharsets;
 import java.nio.file.FileSystem;
 import java.nio.file.FileSystems;
 import java.nio.file.Path;
@@ -21,9 +20,9 @@ import org.json.JSONArray;
 import org.json.JSONObject;
 
 public class Test {
+  public static final FileSystem FILE_SYSTEM = FileSystems.getDefault();
   private static final URI DEFAULT_METASCHEMA =
       URI.create("http://json-schema.org/draft-07/schema#");
-  public static final FileSystem FILE_SYSTEM = FileSystems.getDefault();
 
   public static void main(String[] args) throws URISyntaxException, SchemaException, IOException {
     Path outDir = FILE_SYSTEM.getPath("out");
@@ -49,11 +48,15 @@ public class Test {
       public boolean isGenerateMinimal() {
         return true;
       }
+
+      @Override
+      public float nonRequiredPropertyChance() {
+        return 0.5f;
+      }
     }, schemaStore, new Random(1)).generate(schema, 16);
 
     validate(schema, object);
-    try (BufferedWriter writer =
-             new BufferedWriter(new FileWriter(out.toFile(), StandardCharsets.UTF_8))) {
+    try (BufferedWriter writer = new BufferedWriter(new FileWriter(out.toFile()))) {
       if (object instanceof JSONObject) {
         writer.write(((JSONObject) object).toString(2));
       } else if (object instanceof JSONArray) {

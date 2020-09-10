@@ -6,4 +6,6 @@ public interface Configuration {
   boolean isGenerateNulls();
 
   boolean isGenerateMinimal();
+
+  float nonRequiredPropertyChance();
 }
