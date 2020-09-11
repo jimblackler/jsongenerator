@@ -95,8 +95,8 @@ public class Generator {
       return generateUnvalidated(then, maxTreeSize);
     }
 
-    Collection<String> types =
-        configuration.isPedanticTypes() ? schema.getNonProhibitedTypes() : schema.getTypes();
+    Collection<String> types = configuration.isPedanticTypes() ? schema.getNonProhibitedTypes()
+                                                               : schema.getInferredTypes();
 
     types = new HashSet<>(types);
 
