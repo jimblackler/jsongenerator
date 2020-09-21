@@ -21,8 +21,6 @@ import org.json.JSONObject;
 
 public class Test {
   public static final FileSystem FILE_SYSTEM = FileSystems.getDefault();
-  private static final URI DEFAULT_METASCHEMA =
-      URI.create("http://json-schema.org/draft-07/schema#");
 
   public static void main(String[] args) throws URISyntaxException, SchemaException, IOException {
     Path outDir = FILE_SYSTEM.getPath("out");
@@ -30,8 +28,7 @@ public class Test {
     Path file = base.resolve("longread").resolve("schemas").resolve("schema.json");
     Path out = outDir.resolve("example.json");
     SchemaStore schemaStore = new SchemaStore();
-    Schema schema =
-        schemaStore.loadSchema(Test.class.getResource(file.toString()).toURI(), DEFAULT_METASCHEMA);
+    Schema schema = schemaStore.loadSchema(Test.class.getResource(file.toString()).toURI());
 
     Object object = new Generator(new Configuration() {
       @Override

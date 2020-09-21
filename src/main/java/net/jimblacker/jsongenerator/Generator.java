@@ -151,7 +151,7 @@ public class Generator {
       case "integer": {
         long minimum = getLong(schema.getMinimum(), Integer.MIN_VALUE);
         long maximum = getLong(schema.getMaximum(), Integer.MAX_VALUE - 1);
-        if (!schema.getExclusiveMaximumBoolean()) {
+        if (!schema.isExclusiveMaximumBoolean()) {
           maximum++;
         }
         if (maximum - minimum == 0) {
@@ -169,7 +169,7 @@ public class Generator {
       case "string": {
         long minLength = getLong(schema.getMinLength(), 0);
         long maxLength = getLong(schema.getMaxLength(), Integer.MAX_VALUE - 1);
-        if (!schema.getExclusiveMaximumBoolean()) {
+        if (!schema.isExclusiveMaximumBoolean()) {
           maxLength++;
         }
         long useMaxLength = Math.min(maxLength, minLength + MAX_STRING_LENGTH);
@@ -357,7 +357,8 @@ public class Generator {
             throw new IllegalStateException();
           }
           int size = jsonObject.keySet().size();
-          jsonObject.put(key, generateUnvalidated(entries.getValue(), (int) (0.7f * maxTreeSize)));
+          Object value = generateUnvalidated(entries.getValue(), (int) (0.7f * maxTreeSize));
+          jsonObject.put(key, value);
           if (jsonObject.keySet().size() != size + 1) {
             throw new IllegalStateException();
           }

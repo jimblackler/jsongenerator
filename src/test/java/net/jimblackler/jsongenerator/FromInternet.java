@@ -1,6 +1,6 @@
 package net.jimblackler.jsongenerator;
 
-import static net.jimblackler.jsonschemafriend.DocumentUtils.streamToString;
+import static net.jimblackler.jsonschemafriend.StreamUtils.streamToString;
 import static net.jimblackler.jsonschemafriend.Validator.validate;
 
 import java.io.IOException;
@@ -35,7 +35,7 @@ public class FromInternet {
           System.out.println(uri);
           System.out.println();
           SchemaStore schemaStore = new SchemaStore();
-          Schema schema = schemaStore.loadSchema(uri, DEFAULT_METASCHEMA);
+          Schema schema = schemaStore.loadSchema(uri);
           System.out.println("Schema:");
           System.out.println(JsonUtils.toString(schema.getSchemaObject()));
           System.out.println();

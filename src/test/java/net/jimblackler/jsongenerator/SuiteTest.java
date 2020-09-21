@@ -24,7 +24,6 @@ import java.util.List;
 import java.util.Random;
 import net.jimblacker.jsongenerator.Configuration;
 import net.jimblacker.jsongenerator.Generator;
-import net.jimblackler.jsonschemafriend.DocumentSource;
 import net.jimblackler.jsonschemafriend.DocumentUtils;
 import net.jimblackler.jsonschemafriend.GenerationException;
 import net.jimblackler.jsonschemafriend.MissingPathException;
@@ -100,13 +99,12 @@ public class SuiteTest {
       schema1.put("$schema", metaSchema.toString());
     }
 
-    DocumentSource documentSource = new DocumentSource(List.of(
-        in -> URI.create(in.toString().replace("http://localhost:1234", resource.toString()))));
     URI local = new URI("memory", "local", null, null);
-    documentSource.store(local, schema);
-    SchemaStore schemaStore = new SchemaStore(documentSource);
+    SchemaStore schemaStore = new SchemaStore(
+        in -> URI.create(in.toString().replace("http://localhost:1234", resource.toString())));
+    schemaStore.store(local, schema);
     net.jimblackler.jsonschemafriend.Schema schema1 =
-        schemaStore.loadSchema(local, URI.create("http://json-schema.org/draft-07/schema#"));
+        schemaStore.loadSchema(URI.create("http://json-schema.org/draft-07/schema#"));
 
     JSONArray tests1 = testSet.getJSONArray("tests");
     boolean anyValid = false;
@@ -136,7 +134,7 @@ public class SuiteTest {
 
           @Override
           public boolean isGenerateNulls() {
-            return true;
+            return false;
           }
 
           @Override

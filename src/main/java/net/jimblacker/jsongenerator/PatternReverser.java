@@ -1,7 +1,7 @@
 package net.jimblacker.jsongenerator;
 
 import static net.jimblacker.jsongenerator.CacheLoader.load;
-import static net.jimblacker.jsongenerator.StreamUtils.streamToString;
+import static net.jimblackler.jsonschemafriend.StreamUtils.streamToString;
 
 import java.io.IOException;
 import java.net.URI;
