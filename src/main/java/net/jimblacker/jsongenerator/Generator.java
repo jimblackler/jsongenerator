@@ -5,6 +5,8 @@ import static net.jimblacker.jsongenerator.Fixer.fixUp;
 import static net.jimblacker.jsongenerator.StringUtils.randomString;
 import static net.jimblacker.jsongenerator.ValueUtils.getDouble;
 import static net.jimblacker.jsongenerator.ValueUtils.getLong;
+import static net.jimblackler.jsonschemafriend.TypeInferrer.getNonProhibitedTypes;
+import static net.jimblackler.jsonschemafriend.TypeInferrer.inferTypes;
 
 import java.io.IOException;
 import java.util.ArrayList;
@@ -21,6 +23,7 @@ import net.jimblackler.jsonschemafriend.GenerationException;
 import net.jimblackler.jsonschemafriend.MissingPathException;
 import net.jimblackler.jsonschemafriend.Schema;
 import net.jimblackler.jsonschemafriend.SchemaStore;
+import net.jimblackler.jsonschemafriend.TypeInferrer;
 import org.json.JSONArray;
 import org.json.JSONObject;
 
@@ -95,8 +98,8 @@ public class Generator {
       return generateUnvalidated(then, maxTreeSize);
     }
 
-    Collection<String> types = configuration.isPedanticTypes() ? schema.getNonProhibitedTypes()
-                                                               : schema.getInferredTypes();
+    Collection<String> types = configuration.isPedanticTypes() ? getNonProhibitedTypes(schema)
+                                                               : inferTypes(schema);
 
     types = new HashSet<>(types);
 
@@ -112,7 +115,7 @@ public class Generator {
     Schema contains = schema.getContains();
     if (contains != null && contains.isFalse()) {
       // Special case for when 'contains' is a false schema. We can't generate an array.
-      types = new HashSet<>(schema.getNonProhibitedTypes());
+      types = new HashSet<>(getNonProhibitedTypes(schema));
       types.remove("array");
     }
 

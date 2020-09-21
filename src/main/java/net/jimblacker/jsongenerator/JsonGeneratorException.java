@@ -18,9 +18,4 @@ public class JsonGeneratorException extends SchemaException {
   public JsonGeneratorException(Throwable cause) {
     super(cause);
   }
-
-  protected JsonGeneratorException(
-      String message, Throwable cause, boolean enableSuppression, boolean writableStackTrace) {
-    super(message, cause, enableSuppression, writableStackTrace);
-  }
 }

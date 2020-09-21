@@ -1,6 +1,6 @@
 package net.jimblacker.jsongenerator;
 
-import static net.jimblacker.jsongenerator.CacheLoader.load;
+import static net.jimblackler.jsonschemafriend.CacheLoader.load;
 import static net.jimblackler.jsonschemafriend.StreamUtils.streamToString;
 
 import java.io.IOException;
