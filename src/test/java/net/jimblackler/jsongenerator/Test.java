@@ -24,8 +24,11 @@ public class Test {
 
   public static void main(String[] args) throws URISyntaxException, SchemaException, IOException {
     Path outDir = FILE_SYSTEM.getPath("out");
+    if (!outDir.toFile().exists()) {
+      outDir.toFile().mkdir();
+    }
     Path base = FILE_SYSTEM.getPath("/examples");
-    Path file = base.resolve("longread").resolve("schemas").resolve("schema.json");
+    Path file = base.resolve("warnings.schema.json");
     Path out = outDir.resolve("example.json");
     SchemaStore schemaStore = new SchemaStore();
     Schema schema = schemaStore.loadSchema(Test.class.getResource(file.toString()).toURI());
