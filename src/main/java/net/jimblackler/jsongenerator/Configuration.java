@@ -1,4 +1,4 @@
-package net.jimblacker.jsongenerator;
+package net.jimblackler.jsongenerator;
 
 public interface Configuration {
   boolean isPedanticTypes();

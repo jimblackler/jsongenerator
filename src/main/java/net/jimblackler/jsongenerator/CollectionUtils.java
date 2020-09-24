@@ -1,4 +1,4 @@
-package net.jimblacker.jsongenerator;
+package net.jimblackler.jsongenerator;
 
 import java.util.Collection;
 import java.util.Random;

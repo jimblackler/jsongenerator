@@ -1,4 +1,4 @@
-package net.jimblacker.jsongenerator;
+package net.jimblackler.jsongenerator;
 
 public class ValueUtils {
   static long getLong(Number number, long _default) {

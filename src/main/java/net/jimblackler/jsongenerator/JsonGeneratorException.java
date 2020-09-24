@@ -1,4 +1,4 @@
-package net.jimblacker.jsongenerator;
+package net.jimblackler.jsongenerator;
 
 import net.jimblackler.jsonschemafriend.SchemaException;
 

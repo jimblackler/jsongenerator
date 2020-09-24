@@ -1,4 +1,4 @@
-package net.jimblacker.jsongenerator;
+package net.jimblackler.jsongenerator;
 
 import static net.jimblackler.jsonschemafriend.CacheLoader.load;
 import static net.jimblackler.jsonschemafriend.StreamUtils.streamToString;

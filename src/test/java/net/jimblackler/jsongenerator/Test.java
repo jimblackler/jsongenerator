@@ -5,14 +5,12 @@ import static net.jimblackler.jsonschemafriend.Validator.validate;
 import java.io.BufferedWriter;
 import java.io.FileWriter;
 import java.io.IOException;
-import java.net.URI;
 import java.net.URISyntaxException;
 import java.nio.file.FileSystem;
 import java.nio.file.FileSystems;
 import java.nio.file.Path;
 import java.util.Random;
-import net.jimblacker.jsongenerator.Configuration;
-import net.jimblacker.jsongenerator.Generator;
+
 import net.jimblackler.jsonschemafriend.Schema;
 import net.jimblackler.jsonschemafriend.SchemaException;
 import net.jimblackler.jsonschemafriend.SchemaStore;

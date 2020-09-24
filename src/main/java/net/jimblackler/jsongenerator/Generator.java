@@ -1,10 +1,10 @@
-package net.jimblacker.jsongenerator;
+package net.jimblackler.jsongenerator;
 
-import static net.jimblacker.jsongenerator.CollectionUtils.randomElement;
-import static net.jimblacker.jsongenerator.Fixer.fixUp;
-import static net.jimblacker.jsongenerator.StringUtils.randomString;
-import static net.jimblacker.jsongenerator.ValueUtils.getDouble;
-import static net.jimblacker.jsongenerator.ValueUtils.getLong;
+import static net.jimblackler.jsongenerator.CollectionUtils.randomElement;
+import static net.jimblackler.jsongenerator.Fixer.fixUp;
+import static net.jimblackler.jsongenerator.StringUtils.randomString;
+import static net.jimblackler.jsongenerator.ValueUtils.getDouble;
+import static net.jimblackler.jsongenerator.ValueUtils.getLong;
 import static net.jimblackler.jsonschemafriend.TypeInferrer.getNonProhibitedTypes;
 import static net.jimblackler.jsonschemafriend.TypeInferrer.inferTypes;
 

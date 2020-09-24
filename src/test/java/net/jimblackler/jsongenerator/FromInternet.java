@@ -9,8 +9,7 @@ import java.net.URI;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Random;
-import net.jimblacker.jsongenerator.Configuration;
-import net.jimblacker.jsongenerator.Generator;
+
 import net.jimblackler.jsonschemafriend.Schema;
 import net.jimblackler.jsonschemafriend.SchemaStore;
 import org.json.JSONArray;
