@@ -6,8 +6,6 @@ import static net.jimblackler.jsongenerator.StringUtils.randomString;
 import static net.jimblackler.jsongenerator.ValueUtils.getDouble;
 import static net.jimblackler.jsongenerator.ValueUtils.getLong;
 import static net.jimblackler.jsonschemafriend.TypeInferrer.getNonProhibitedTypes;
-import static net.jimblackler.jsonschemafriend.TypeInferrer.inferTypes;
-
 import java.io.IOException;
 import java.util.ArrayList;
 import java.util.Collection;
@@ -18,12 +16,13 @@ import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
 import java.util.Random;
+
+import net.jimblackler.jsonschemafriend.CombinedSchema;
 import net.jimblackler.jsonschemafriend.Ecma262Pattern;
 import net.jimblackler.jsonschemafriend.GenerationException;
 import net.jimblackler.jsonschemafriend.MissingPathException;
 import net.jimblackler.jsonschemafriend.Schema;
 import net.jimblackler.jsonschemafriend.SchemaStore;
-import net.jimblackler.jsonschemafriend.TypeInferrer;
 import org.json.JSONArray;
 import org.json.JSONObject;
 
@@ -74,11 +73,6 @@ public class Generator {
       return _const;
     }
 
-    // Naive.
-    Collection<Schema> allOf = schema.getAllOf();
-    if (allOf != null && !allOf.isEmpty()) {
-      return generateUnvalidated(randomElement(random, allOf), maxTreeSize);
-    }
 
     // Naive.
     Collection<Schema> anyOf = schema.getAnyOf();
@@ -98,8 +92,10 @@ public class Generator {
       return generateUnvalidated(then, maxTreeSize);
     }
 
-    Collection<String> types = configuration.isPedanticTypes() ? getNonProhibitedTypes(schema)
-                                                               : inferTypes(schema);
+    CombinedSchema combinedSchema = new CombinedSchema(schema);
+
+    Collection<String> types = configuration.isPedanticTypes() ? getNonProhibitedTypes(combinedSchema)
+                                                               : combinedSchema.getInferredTypes();
 
     types = new HashSet<>(types);
 
@@ -115,11 +111,11 @@ public class Generator {
     Schema contains = schema.getContains();
     if (contains != null && contains.isFalse()) {
       // Special case for when 'contains' is a false schema. We can't generate an array.
-      types = new HashSet<>(getNonProhibitedTypes(schema));
+      types = new HashSet<>(getNonProhibitedTypes(combinedSchema));
       types.remove("array");
     }
 
-    Collection<String> explicitTypes = schema.getExplicitTypes();
+    Collection<String> explicitTypes = combinedSchema.getExplicitTypes();
     if (!configuration.isGenerateNulls()
         && (explicitTypes == null || !explicitTypes.contains("null"))) {
       // We remove null if the configuration demands it, but not if the schema calls for it.
@@ -130,7 +126,7 @@ public class Generator {
       throw new IllegalStateException("No types");
     }
     String type = randomElement(random, types);
-    List<Object> enums = schema.getEnums();
+    Collection<Object> enums = combinedSchema.getEnums();
     if (enums != null) {
       return randomElement(random, enums);
     }
@@ -250,7 +246,7 @@ public class Generator {
       }
       case "object": {
         Map<String, Schema> schemas = new HashMap<>();
-        Map<String, Schema> properties = schema.getProperties();
+        Map<String, Schema> properties = combinedSchema.getProperties();
         Collection<String> requiredProperties = schema.getRequiredProperties();
 
         long minProperties = getLong(schema.getMinProperties(), 0);
@@ -291,7 +287,7 @@ public class Generator {
         }
 
         Collection<Ecma262Pattern> patternPropertiesPatterns =
-            schema.getPatternPropertiesPatterns();
+        schema.getPatternPropertiesPatterns();
         Schema additionalProperties = schema.getAdditionalProperties();
         Schema propertyNameSchema = schema.getPropertyNames();
 
