@@ -18,9 +18,9 @@ import java.util.Map;
 import java.util.Random;
 
 import net.jimblackler.jsonschemafriend.CombinedSchema;
-import net.jimblackler.jsonschemafriend.Ecma262Pattern;
 import net.jimblackler.jsonschemafriend.GenerationException;
 import net.jimblackler.jsonschemafriend.MissingPathException;
+import net.jimblackler.jsonschemafriend.RegExPattern;
 import net.jimblackler.jsonschemafriend.Schema;
 import net.jimblackler.jsonschemafriend.SchemaStore;
 import org.json.JSONArray;
@@ -172,7 +172,7 @@ public class Generator {
           maxLength++;
         }
         long useMaxLength = Math.min(maxLength, minLength + MAX_STRING_LENGTH);
-        Ecma262Pattern pattern1 = schema.getPattern();
+        RegExPattern pattern1 = schema.getPattern();
         String pattern = pattern1 == null ? null : pattern1.toString();
         if (pattern != null) {
           return patternReverser.reverse(pattern, random);
@@ -286,7 +286,7 @@ public class Generator {
           }
         }
 
-        Collection<Ecma262Pattern> patternPropertiesPatterns =
+        Collection<RegExPattern> patternPropertiesPatterns =
         schema.getPatternPropertiesPatterns();
         Schema additionalProperties = schema.getAdditionalProperties();
         Schema propertyNameSchema = schema.getPropertyNames();
@@ -295,7 +295,7 @@ public class Generator {
           if (patternPropertiesPatterns != null && !patternPropertiesPatterns.isEmpty()) {
             Collection<Schema> patternPropertiesSchema = schema.getPatternPropertiesSchema();
             int index = random.nextInt(patternPropertiesPatterns.size());
-            Iterator<Ecma262Pattern> it0 = patternPropertiesPatterns.iterator();
+            Iterator<RegExPattern> it0 = patternPropertiesPatterns.iterator();
             Iterator<Schema> it1 = patternPropertiesSchema.iterator();
             while (index > 0) {
               it0.next();

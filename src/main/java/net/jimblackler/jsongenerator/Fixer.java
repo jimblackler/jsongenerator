@@ -35,21 +35,23 @@ import net.jimblackler.jsonschemafriend.NotError;
 import net.jimblackler.jsonschemafriend.OneOfError;
 import net.jimblackler.jsonschemafriend.PathUtils;
 import net.jimblackler.jsonschemafriend.PatternError;
+import net.jimblackler.jsonschemafriend.RegExPattern;
 import net.jimblackler.jsonschemafriend.Schema;
 import net.jimblackler.jsonschemafriend.TypeError;
 import net.jimblackler.jsonschemafriend.UniqueItemsError;
 import net.jimblackler.jsonschemafriend.ValidationError;
+import net.jimblackler.jsonschemafriend.Validator;
 import org.json.JSONArray;
 import org.json.JSONObject;
 
 public class Fixer {
   static Object fixUp(Schema schema, Object object, Generator generator, Random random,
-      PatternReverser patternReverser) throws MissingPathException {
+      PatternReverser patternReverser) {
     int attempt = 0;
     Set<String> considered = new HashSet<>();
     while (true) {
       Collection<ValidationError> errors = new ArrayList<>();
-      validate(schema, object, errors::add);
+      Validator.validate(schema, object, (error) -> true, errors::add);
 
       if (errors.isEmpty()) {
         break;
@@ -215,7 +217,7 @@ public class Fixer {
     }
 
     if (error instanceof PatternError) {
-      Ecma262Pattern pattern1 = schema.getPattern();
+      RegExPattern pattern1 = schema.getPattern();
       Random r2 = new Random(random.nextInt(10)); // Limited number to help detect lost causes.
       return patternReverser.reverse(pattern1.toString(), r2);
     }
@@ -233,14 +235,14 @@ public class Fixer {
         jsonObject.put(entry.getKey(), 0);
       }
       while (jsonObject.length() < minProperties) {
-        Collection<Ecma262Pattern> patternPropertiesPatterns =
+        Collection<RegExPattern> patternPropertiesPatterns =
             schema.getPatternPropertiesPatterns();
         Collection<Schema> patternPropertiesSchema = schema.getPatternPropertiesSchema();
         if (patternPropertiesPatterns.isEmpty()) {
           jsonObject.put(randomString(random, 1, 20), 0);
         } else {
           int index = random.nextInt(patternPropertiesPatterns.size());
-          Iterator<Ecma262Pattern> it0 = patternPropertiesPatterns.iterator();
+          Iterator<RegExPattern> it0 = patternPropertiesPatterns.iterator();
           Iterator<Schema> it1 = patternPropertiesSchema.iterator();
           while (index > 0) {
             it0.next();
