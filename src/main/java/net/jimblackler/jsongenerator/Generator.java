@@ -6,6 +6,7 @@ import static net.jimblackler.jsongenerator.StringUtils.randomString;
 import static net.jimblackler.jsongenerator.ValueUtils.getDouble;
 import static net.jimblackler.jsongenerator.ValueUtils.getLong;
 import static net.jimblackler.jsonschemafriend.TypeInferrer.getNonProhibitedTypes;
+
 import java.io.IOException;
 import java.util.ArrayList;
 import java.util.Collection;
@@ -16,19 +17,25 @@ import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
 import java.util.Random;
-
 import net.jimblackler.jsonschemafriend.CombinedSchema;
 import net.jimblackler.jsonschemafriend.GenerationException;
-import net.jimblackler.jsonschemafriend.MissingPathException;
-import net.jimblackler.jsonschemafriend.RegExPattern;
 import net.jimblackler.jsonschemafriend.Schema;
 import net.jimblackler.jsonschemafriend.SchemaStore;
 import org.json.JSONArray;
 import org.json.JSONObject;
 
 public class Generator {
+  public static final Map<String, String> FORMAT_REGEXES;
   private static final int MAX_STRING_LENGTH = 60;
   private static final int MAX_ADDITIONAL_PROPERTIES_KEY_LENGTH = 50;
+
+  static {
+    Map<String, String> _formatRegex = new HashMap<>();
+    _formatRegex.put("ipv4", "^(?:[0-9]{1,3}\\.){3}[0-9]{1,3}$");
+    _formatRegex.put("ipv6", "^(?:[A-F0-9]{1,4}:){7}[A-F0-9]{1,4}$");
+    FORMAT_REGEXES = _formatRegex;
+  }
+
   private final Configuration configuration;
   private final Random random;
   private final PatternReverser patternReverser;
@@ -50,8 +57,7 @@ public class Generator {
     return anySchema;
   }
 
-  public Object generate(Schema schema, int maxTreeSize)
-      throws JsonGeneratorException, MissingPathException {
+  public Object generate(Schema schema, int maxTreeSize) throws JsonGeneratorException {
     if (schema.isFalse()) {
       throw new JsonGeneratorException(
           schema.getUri() + " : nothing can validate against a false schema");
@@ -73,7 +79,6 @@ public class Generator {
       return _const;
     }
 
-
     // Naive.
     Collection<Schema> anyOf = schema.getAnyOf();
     if (anyOf != null && !anyOf.isEmpty()) {
@@ -94,8 +99,9 @@ public class Generator {
 
     CombinedSchema combinedSchema = new CombinedSchema(schema);
 
-    Collection<String> types = configuration.isPedanticTypes() ? getNonProhibitedTypes(combinedSchema)
-                                                               : combinedSchema.getInferredTypes();
+    Collection<String> types = configuration.isPedanticTypes()
+        ? getNonProhibitedTypes(combinedSchema)
+        : combinedSchema.getInferredTypes();
 
     types = new HashSet<>(types);
 
@@ -166,17 +172,22 @@ public class Generator {
         return value;
       }
       case "string": {
+        String pattern0 = FORMAT_REGEXES.get(schema.getFormat());
+        if (pattern0 != null) {
+          return patternReverser.reverse(pattern0, random);
+        }
+
+        String pattern1 = schema.getPattern();
+        if (pattern1 != null) {
+          return patternReverser.reverse(pattern1, random);
+        }
+
         long minLength = getLong(schema.getMinLength(), 0);
         long maxLength = getLong(schema.getMaxLength(), Integer.MAX_VALUE - 1);
         if (!schema.isExclusiveMaximumBoolean()) {
           maxLength++;
         }
         long useMaxLength = Math.min(maxLength, minLength + MAX_STRING_LENGTH);
-        String pattern1 = schema.getPattern();
-        if (pattern1 != null) {
-          return patternReverser.reverse(pattern1, random);
-        }
-
         return randomString(random, (int) minLength, (int) useMaxLength);
       }
       case "array": {
@@ -285,8 +296,7 @@ public class Generator {
           }
         }
 
-        Collection<String> patternPropertiesPatterns =
-        schema.getPatternPropertiesPatterns();
+        Collection<String> patternPropertiesPatterns = schema.getPatternPropertiesPatterns();
         Schema additionalProperties = schema.getAdditionalProperties();
         Schema propertyNameSchema = schema.getPropertyNames();
 
