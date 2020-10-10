@@ -3,7 +3,6 @@ package net.jimblackler.jsongenerator;
 import static net.jimblackler.jsongenerator.CollectionUtils.randomElement;
 import static net.jimblackler.jsongenerator.StringUtils.randomString;
 import static net.jimblackler.jsongenerator.ValueUtils.getLong;
-import static net.jimblackler.jsonschemafriend.Validator.validate;
 
 import java.util.ArrayList;
 import java.util.Collection;
@@ -51,7 +50,7 @@ public class Fixer {
     Set<String> considered = new HashSet<>();
     while (true) {
       Collection<ValidationError> errors = new ArrayList<>();
-      Validator.validate(schema, object, (error) -> true, errors::add);
+      new Validator().validate(schema, object, errors::add);
 
       if (errors.isEmpty()) {
         break;
@@ -217,9 +216,9 @@ public class Fixer {
     }
 
     if (error instanceof PatternError) {
-      RegExPattern pattern1 = schema.getPattern();
+      String pattern1 = schema.getPattern();
       Random r2 = new Random(random.nextInt(10)); // Limited number to help detect lost causes.
-      return patternReverser.reverse(pattern1.toString(), r2);
+      return patternReverser.reverse(pattern1, r2);
     }
 
     if (error instanceof MinLengthError || error instanceof MaxLengthError) {
@@ -235,14 +234,14 @@ public class Fixer {
         jsonObject.put(entry.getKey(), 0);
       }
       while (jsonObject.length() < minProperties) {
-        Collection<RegExPattern> patternPropertiesPatterns =
+        Collection<String> patternPropertiesPatterns =
             schema.getPatternPropertiesPatterns();
         Collection<Schema> patternPropertiesSchema = schema.getPatternPropertiesSchema();
         if (patternPropertiesPatterns.isEmpty()) {
           jsonObject.put(randomString(random, 1, 20), 0);
         } else {
           int index = random.nextInt(patternPropertiesPatterns.size());
-          Iterator<RegExPattern> it0 = patternPropertiesPatterns.iterator();
+          Iterator<String> it0 = patternPropertiesPatterns.iterator();
           Iterator<Schema> it1 = patternPropertiesSchema.iterator();
           while (index > 0) {
             it0.next();

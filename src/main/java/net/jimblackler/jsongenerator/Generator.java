@@ -172,10 +172,9 @@ public class Generator {
           maxLength++;
         }
         long useMaxLength = Math.min(maxLength, minLength + MAX_STRING_LENGTH);
-        RegExPattern pattern1 = schema.getPattern();
-        String pattern = pattern1 == null ? null : pattern1.toString();
-        if (pattern != null) {
-          return patternReverser.reverse(pattern, random);
+        String pattern1 = schema.getPattern();
+        if (pattern1 != null) {
+          return patternReverser.reverse(pattern1, random);
         }
 
         return randomString(random, (int) minLength, (int) useMaxLength);
@@ -286,7 +285,7 @@ public class Generator {
           }
         }
 
-        Collection<RegExPattern> patternPropertiesPatterns =
+        Collection<String> patternPropertiesPatterns =
         schema.getPatternPropertiesPatterns();
         Schema additionalProperties = schema.getAdditionalProperties();
         Schema propertyNameSchema = schema.getPropertyNames();
@@ -295,7 +294,7 @@ public class Generator {
           if (patternPropertiesPatterns != null && !patternPropertiesPatterns.isEmpty()) {
             Collection<Schema> patternPropertiesSchema = schema.getPatternPropertiesSchema();
             int index = random.nextInt(patternPropertiesPatterns.size());
-            Iterator<RegExPattern> it0 = patternPropertiesPatterns.iterator();
+            Iterator<String> it0 = patternPropertiesPatterns.iterator();
             Iterator<Schema> it1 = patternPropertiesSchema.iterator();
             while (index > 0) {
               it0.next();
@@ -304,8 +303,7 @@ public class Generator {
             }
             Schema schema1 = it1.next();
             if (!schema1.isFalse()) {
-              String pattern = it0.next().toString();
-
+              String pattern = it0.next();
               String str = patternReverser.reverse(pattern, random);
               if (schemas.containsKey(str)) {
                 // Probably an inflexible pattern. Let's just give up.
