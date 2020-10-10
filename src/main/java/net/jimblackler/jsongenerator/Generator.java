@@ -33,6 +33,9 @@ public class Generator {
     Map<String, String> _formatRegex = new HashMap<>();
     _formatRegex.put("ipv4", "^(?:[0-9]{1,3}\\.){3}[0-9]{1,3}$");
     _formatRegex.put("ipv6", "^(?:[A-F0-9]{1,4}:){7}[A-F0-9]{1,4}$");
+    _formatRegex.put("uri-reference",
+        "^http:\\/\\/[a-zA-Z0-9_\\-]+\\.[a-zA-Z0-9_\\-]+\\.[a-zA-Z0-9_\\-]+$");
+    _formatRegex.put("regex", "/\\/(.*)?\\/([i|g|m]+)?/");
     FORMAT_REGEXES = _formatRegex;
   }
 
