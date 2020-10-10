@@ -1,7 +1,5 @@
 package net.jimblackler.jsongenerator;
 
-import static net.jimblackler.jsonschemafriend.Validator.validate;
-
 import java.io.BufferedWriter;
 import java.io.FileWriter;
 import java.io.IOException;
@@ -13,6 +11,7 @@ import java.util.Random;
 import net.jimblackler.jsonschemafriend.Schema;
 import net.jimblackler.jsonschemafriend.SchemaException;
 import net.jimblackler.jsonschemafriend.SchemaStore;
+import net.jimblackler.jsonschemafriend.Validator;
 import org.json.JSONArray;
 import org.json.JSONObject;
 
@@ -52,7 +51,7 @@ public class Test {
       }
     }, schemaStore, new Random(1)).generate(schema, 16);
 
-    validate(schema, object);
+    new Validator().validate(schema, object);
     try (BufferedWriter writer = new BufferedWriter(new FileWriter(out.toFile()))) {
       if (object instanceof JSONObject) {
         writer.write(((JSONObject) object).toString(2));

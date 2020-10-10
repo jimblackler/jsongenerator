@@ -1,7 +1,6 @@
 package net.jimblackler.jsongenerator;
 
 import static net.jimblackler.jsonschemafriend.StreamUtils.streamToString;
-import static net.jimblackler.jsonschemafriend.Validator.validate;
 
 import java.io.IOException;
 import java.io.InputStream;
@@ -11,6 +10,7 @@ import java.util.Collection;
 import java.util.Random;
 import net.jimblackler.jsonschemafriend.Schema;
 import net.jimblackler.jsonschemafriend.SchemaStore;
+import net.jimblackler.jsonschemafriend.Validator;
 import org.json.JSONArray;
 import org.junit.jupiter.api.DynamicTest;
 import org.junit.jupiter.api.TestFactory;
@@ -62,7 +62,7 @@ public class FromInternet {
           System.out.println("Data:");
           System.out.println(JsonUtils.toString(object));
           System.out.println();
-          validate(schema, object);
+          new Validator().validate(schema, object);
         }));
       }
     }

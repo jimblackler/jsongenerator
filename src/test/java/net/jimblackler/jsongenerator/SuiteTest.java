@@ -1,6 +1,5 @@
 package net.jimblackler.jsongenerator;
 
-import static net.jimblackler.jsonschemafriend.Validator.validate;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.fail;
 import static org.junit.jupiter.api.DynamicContainer.dynamicContainer;
@@ -28,6 +27,7 @@ import net.jimblackler.jsonschemafriend.MissingPathException;
 import net.jimblackler.jsonschemafriend.SchemaException;
 import net.jimblackler.jsonschemafriend.SchemaStore;
 import net.jimblackler.jsonschemafriend.ValidationError;
+import net.jimblackler.jsonschemafriend.Validator;
 import org.everit.json.schema.Schema;
 import org.everit.json.schema.ValidationException;
 import org.everit.json.schema.loader.SchemaLoader;
@@ -153,7 +153,7 @@ public class SuiteTest {
         } else {
           System.out.println(generated);
         }
-        validate(schema1, generated);
+        new Validator().validate(schema1, generated);
 
         // Does it also pass Everit?
         if (false)
@@ -200,7 +200,7 @@ public class SuiteTest {
             System.out.println();
 
             List<ValidationError> errors = new ArrayList<>();
-            validate(schema1, data, URI.create(""), errors::add);
+            new Validator().validate(schema1, data, URI.create(""), errors::add);
 
             if (errors.isEmpty()) {
               // TODO.. add makeFail test.
