@@ -1,6 +1,7 @@
 package net.jimblackler.jsongenerator;
 
 import static net.jimblackler.jsongenerator.CollectionUtils.randomElement;
+import static net.jimblackler.jsongenerator.Generator.FORMAT_REGEXES;
 import static net.jimblackler.jsongenerator.StringUtils.randomString;
 import static net.jimblackler.jsongenerator.ValueUtils.getLong;
 
@@ -15,11 +16,11 @@ import java.util.Set;
 import net.jimblackler.jsonschemafriend.AnyOfError;
 import net.jimblackler.jsonschemafriend.ConstError;
 import net.jimblackler.jsonschemafriend.DependencyError;
-import net.jimblackler.jsonschemafriend.Ecma262Pattern;
 import net.jimblackler.jsonschemafriend.EnumError;
 import net.jimblackler.jsonschemafriend.ExclusiveMaximumError;
 import net.jimblackler.jsonschemafriend.ExclusiveMinimumError;
 import net.jimblackler.jsonschemafriend.FalseSchemaError;
+import net.jimblackler.jsonschemafriend.FormatError;
 import net.jimblackler.jsonschemafriend.MaxLengthError;
 import net.jimblackler.jsonschemafriend.MaxPropertiesError;
 import net.jimblackler.jsonschemafriend.MaximumError;
@@ -34,7 +35,6 @@ import net.jimblackler.jsonschemafriend.NotError;
 import net.jimblackler.jsonschemafriend.OneOfError;
 import net.jimblackler.jsonschemafriend.PathUtils;
 import net.jimblackler.jsonschemafriend.PatternError;
-import net.jimblackler.jsonschemafriend.RegExPattern;
 import net.jimblackler.jsonschemafriend.Schema;
 import net.jimblackler.jsonschemafriend.TypeError;
 import net.jimblackler.jsonschemafriend.UniqueItemsError;
@@ -234,8 +234,7 @@ public class Fixer {
         jsonObject.put(entry.getKey(), 0);
       }
       while (jsonObject.length() < minProperties) {
-        Collection<String> patternPropertiesPatterns =
-            schema.getPatternPropertiesPatterns();
+        Collection<String> patternPropertiesPatterns = schema.getPatternPropertiesPatterns();
         Collection<Schema> patternPropertiesSchema = schema.getPatternPropertiesSchema();
         if (patternPropertiesPatterns.isEmpty()) {
           jsonObject.put(randomString(random, 1, 20), 0);
@@ -250,7 +249,7 @@ public class Fixer {
           }
           Schema schema1 = it1.next();
           if (!schema1.isFalse()) {
-            String pattern = it0.next().toString();
+            String pattern = it0.next();
             String str = patternReverser.reverse(pattern, random);
             jsonObject.put(str, 0);
           }
@@ -282,6 +281,12 @@ public class Fixer {
       return out;
     }
 
-    throw new IllegalStateException();
+    if (error instanceof FormatError) {
+      String pattern0 = FORMAT_REGEXES.get(schema.getFormat());
+      if (pattern0 != null) {
+        return patternReverser.reverse(pattern0, random);
+      }
+    }
+    throw new IllegalStateException("Can't fix " + error);
   }
 }
