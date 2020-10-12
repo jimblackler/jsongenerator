@@ -53,11 +53,7 @@ public class Test {
 
     new Validator().validate(schema, object);
     try (BufferedWriter writer = new BufferedWriter(new FileWriter(out.toFile()))) {
-      if (object instanceof JSONObject) {
-        writer.write(((JSONObject) object).toString(2));
-      } else if (object instanceof JSONArray) {
-        writer.write(((JSONArray) object).toString(2));
-      }
+      writer.write(JsonUtils.toString(object));
     }
   }
 }
