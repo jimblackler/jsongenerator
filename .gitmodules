@@ -1,0 +1,6 @@
+[submodule "src/test/resources/suites/JSON-Schema-Test-Suite"]
+	path = src/test/resources/suites/JSON-Schema-Test-Suite
+	url = https://github.com/json-schema-org/JSON-Schema-Test-Suite
+[submodule "src/test/resources/SchemaStore"]
+	path = src/test/resources/SchemaStore
+	url = https://github.com/SchemaStore/schemastore
