@@ -31,11 +31,24 @@ public class Generator {
 
   static {
     Map<String, String> _formatRegex = new HashMap<>();
+    _formatRegex.put("date", "^\\d{4}-\\d{2}-\\d{2}$");
+    _formatRegex.put("date-time", "^\\d{4}-\\d{2}-\\d{2}T\\d{2}:\\d{2}:\\d{2}\\.\\d{3}Z$");
+    _formatRegex.put("email", "^[a-zA-Z_.]{2,10}@[a-zA-Z0-9-]{2,10}\\.[a-z]{2,3}$");
+    _formatRegex.put("hostname", "^[a-zA-Z0-9-]{2,10}\\.[a-z]{2,3}$");
+    _formatRegex.put("idn-email", "^[a-zA-Z_.]{2,10}@[a-zA-Z0-9-]{2,10}\\.[a-z]{2,3}$");
+    _formatRegex.put("idn-hostname", "^[a-zA-Z0-9-]{2,10}\\.[a-z]{2,3}$");
     _formatRegex.put("ipv4", "^(?:[0-9]{1,3}\\.){3}[0-9]{1,3}$");
     _formatRegex.put("ipv6", "^(?:[A-F0-9]{1,4}:){7}[A-F0-9]{1,4}$");
-    _formatRegex.put("uri-reference",
-        "^http:\\/\\/[a-zA-Z0-9_\\-]+\\.[a-zA-Z0-9_\\-]+\\.[a-zA-Z0-9_\\-]+$");
+    _formatRegex.put("iri", "^http:\\/\\/[a-zA-Z0-9_\\-]+\\.[a-zA-Z0-9_\\-]+\\.[a-zA-Z0-9_\\-]+$");
+    _formatRegex.put("json-pointer", "^/[a-zA-Z0-9_/-]{2,40}$");
     _formatRegex.put("regex", "/\\/(.*)?\\/([i|g|m]+)?/");
+    _formatRegex.put("relative-json-pointer", "^\\d{4}/[a-zA-Z0-9_/-]{2,40}$");
+    _formatRegex.put("time", "^\\d{2}:\\d{2}:\\d{2}\\.\\d{3}Z$");
+    _formatRegex.put("uri", "^http:\\/\\/[a-zA-Z0-9_\\-]+\\.[a-zA-Z0-9_\\-]+\\.[a-zA-Z0-9_\\-]+$");
+    _formatRegex.put(
+        "uri-reference", "^http:\\/\\/[a-zA-Z0-9_\\-]+\\.[a-zA-Z0-9_\\-]+\\.[a-zA-Z0-9_\\-]+$");
+    _formatRegex.put(
+        "uuid", "^[a-fA-F0-9]{8}-[a-fA-F0-9]{4}-[a-fA-F0-9]{4}-[a-fA-F0-9]{4}-[a-fA-F0-9]{12}$");
     FORMAT_REGEXES = _formatRegex;
   }
 
