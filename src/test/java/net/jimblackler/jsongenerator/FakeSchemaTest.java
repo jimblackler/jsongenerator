@@ -19,16 +19,17 @@ public class FakeSchemaTest {
     Collection<DynamicNode> testsOut = new ArrayList<>();
 
     JSONObject schemaObject = new JSONObject();
-    schemaObject.put("$ref", "http://json-schema.org/draft-07/schema#");
-    schemaObject.put("$schema", "http://json-schema.org/draft-07/schema#");
+    String metaSchema = "http://json-schema.org/draft-07/schema#";
+    schemaObject.put("$ref", metaSchema);
+    schemaObject.put("$schema", metaSchema);
     Schema schema = new SchemaStore().loadSchema(schemaObject);
 
-    for (int attempt = 0; attempt != 20; attempt++) {
+    for (int attempt = 100; attempt != 200; attempt++) {
       int finalAttempt = attempt;
       testsOut.add(dynamicTest("" + attempt, () -> {
         SchemaStore schemaStore = new SchemaStore();
 
-        Object generated = new Generator(new Configuration() {
+        Generator generator = new Generator(new Configuration() {
           @Override
           public boolean isPedanticTypes() {
             return false;
@@ -48,10 +49,26 @@ public class FakeSchemaTest {
           public float nonRequiredPropertyChance() {
             return 0.5f;
           }
-        }, schemaStore, new Random(finalAttempt)).generate(schema, 16);
+        }, schemaStore, new Random(finalAttempt));
+        Object generated = generator.generate(schema, 16);
 
         System.out.println(JsonUtils.toString(generated));
         new Validator().validate(schema, generated);
+
+        if (generated instanceof JSONObject) {
+          ((JSONObject) generated).put("$schema", metaSchema);
+        }
+
+        // Now convert to schema.
+        Schema schema2 = new SchemaStore().loadSchema(generated);
+
+        try {
+          Object generated2 = generator.generate(schema2, 16);
+
+          new Validator().validate(schema2, generated2);
+        } catch (JsonGeneratorException | OutOfMemoryError e) {
+          e.printStackTrace();
+        }
       }));
     }
     return testsOut;
