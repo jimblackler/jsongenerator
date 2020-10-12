@@ -34,9 +34,11 @@ public class Generator {
     _formatRegex.put("date", "^\\d{4}-\\d{2}-\\d{2}$");
     _formatRegex.put("date-time", "^\\d{4}-\\d{2}-\\d{2}T\\d{2}:\\d{2}:\\d{2}\\.\\d{3}Z$");
     _formatRegex.put("email", "^[a-zA-Z_.]{2,10}@[a-zA-Z0-9-]{2,10}\\.[a-z]{2,3}$");
+    _formatRegex.put("host-name", "^[a-zA-Z0-9-]{2,10}\\.[a-z]{2,3}$");
     _formatRegex.put("hostname", "^[a-zA-Z0-9-]{2,10}\\.[a-z]{2,3}$");
     _formatRegex.put("idn-email", "^[a-zA-Z_.]{2,10}@[a-zA-Z0-9-]{2,10}\\.[a-z]{2,3}$");
     _formatRegex.put("idn-hostname", "^[a-zA-Z0-9-]{2,10}\\.[a-z]{2,3}$");
+    _formatRegex.put("ip-address", "^(?:[0-9]{1,3}\\.){3}[0-9]{1,3}$");
     _formatRegex.put("ipv4", "^(?:[0-9]{1,3}\\.){3}[0-9]{1,3}$");
     _formatRegex.put("ipv6", "^(?:[A-F0-9]{1,4}:){7}[A-F0-9]{1,4}$");
     _formatRegex.put("iri", "^http:\\/\\/[a-zA-Z0-9_\\-]+\\.[a-zA-Z0-9_\\-]+\\.[a-zA-Z0-9_\\-]+$");
