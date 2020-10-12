@@ -5,6 +5,7 @@ import static net.jimblackler.jsongenerator.Generator.FORMAT_REGEXES;
 import static net.jimblackler.jsongenerator.StringUtils.randomString;
 import static net.jimblackler.jsongenerator.ValueUtils.getLong;
 
+import java.net.URI;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.HashSet;
@@ -45,7 +46,7 @@ import org.json.JSONObject;
 
 public class Fixer {
   static Object fixUp(Schema schema, Object object, Generator generator, Random random,
-      PatternReverser patternReverser) {
+      PatternReverser patternReverser) throws JsonGeneratorException {
     int attempt = 0;
     Set<String> considered = new HashSet<>();
     while (true) {
@@ -59,16 +60,6 @@ public class Fixer {
       attempt++;
 
       System.out.println("Attempt " + attempt + ":");
-      if (false) {
-        if (object instanceof JSONObject) {
-          System.out.println(((JSONObject) object).toString(2));
-        } else if (object instanceof JSONArray) {
-          System.out.println(((JSONArray) object).toString(2));
-        } else {
-          System.out.println(object);
-        }
-        System.out.println();
-      }
       for (ValidationError error : errors) {
         System.out.println(error);
       }
@@ -80,9 +71,11 @@ public class Fixer {
       List<ValidationError> errorList = new ArrayList<>(errors);
       while (!errorList.isEmpty()) {
         ValidationError error = errorList.remove(0);
-        if (error instanceof FalseSchemaError) {
+        URI uri = error.getUri();
+        String path = uri.getRawFragment();
+        if (error instanceof FalseSchemaError && path != null && !path.isEmpty()) {
           try {
-            PathUtils.deleteAtPath(object, error.getUri().getRawFragment());
+            PathUtils.deleteAtPath(object, path);
           } catch (MissingPathException e) {
             e.printStackTrace();
           }
@@ -108,12 +101,12 @@ public class Fixer {
         }
 
         try {
-          Object objectToFix = PathUtils.fetchFromPath(object, error.getUri().getRawFragment());
+          Object objectToFix = Validator.getObject(object, uri);
           Object fixed = fix(objectToFix, error, generator, random, patternReverser);
           if (objectToFix == object) {
             object = fixed;
           } else if (objectToFix != fixed) {
-            PathUtils.modifyAtPath(object, error.getUri().getRawFragment(), fixed);
+            object = PathUtils.modifyAtPath(object, path, fixed);
           }
         } catch (MissingPathException e) {
           e.printStackTrace();
@@ -126,7 +119,7 @@ public class Fixer {
   }
 
   private static Object fix(Object object, ValidationError error, Generator generator,
-      Random random, PatternReverser patternReverser) {
+      Random random, PatternReverser patternReverser) throws JsonGeneratorException {
     Schema schema = error.getSchema();
     if (error instanceof ConstError) {
       return schema.getConst();
@@ -287,6 +280,6 @@ public class Fixer {
         return patternReverser.reverse(pattern0, random);
       }
     }
-    throw new IllegalStateException("Can't fix " + error);
+    throw new JsonGeneratorException("Can't fix " + error);
   }
 }

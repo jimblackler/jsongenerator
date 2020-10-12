@@ -43,7 +43,7 @@ public class Generator {
     _formatRegex.put("ipv6", "^(?:[A-F0-9]{1,4}:){7}[A-F0-9]{1,4}$");
     _formatRegex.put("iri", "^http:\\/\\/[a-zA-Z0-9_\\-]+\\.[a-zA-Z0-9_\\-]+\\.[a-zA-Z0-9_\\-]+$");
     _formatRegex.put("json-pointer", "^/[a-zA-Z0-9_/-]{2,40}$");
-    _formatRegex.put("regex", "/\\/(.*)?\\/([i|g|m]+)?/");
+    _formatRegex.put("regex", "\\/([^()]*)?\\/([i|g|m]+)?");
     _formatRegex.put("relative-json-pointer", "^\\d{4}/[a-zA-Z0-9_/-]{2,40}$");
     _formatRegex.put("time", "^\\d{2}:\\d{2}:\\d{2}\\.\\d{3}Z$");
     _formatRegex.put("uri", "^http:\\/\\/[a-zA-Z0-9_\\-]+\\.[a-zA-Z0-9_\\-]+\\.[a-zA-Z0-9_\\-]+$");
@@ -117,9 +117,10 @@ public class Generator {
 
     CombinedSchema combinedSchema = new CombinedSchema(schema);
 
-    Collection<String> types = configuration.isPedanticTypes()
+    Collection<String> inferredTypes = combinedSchema.getInferredTypes();
+    Collection<String> types = configuration.isPedanticTypes() || inferredTypes.isEmpty()
         ? getNonProhibitedTypes(combinedSchema)
-        : combinedSchema.getInferredTypes();
+        : inferredTypes;
 
     types = new HashSet<>(types);
 
