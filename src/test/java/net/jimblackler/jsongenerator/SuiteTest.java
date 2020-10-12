@@ -107,13 +107,7 @@ public class SuiteTest {
                       }
                     }, schemaStore, new Random(1)).generate(schema1, 16);
 
-                    if (generated instanceof JSONObject) {
-                      System.out.println(((JSONObject) generated).toString(2));
-                    } else if (generated instanceof JSONArray) {
-                      System.out.println(((JSONArray) generated).toString(2));
-                    } else {
-                      System.out.println(generated);
-                    }
+                    System.out.println(JsonUtils.toString(generated));
                     new Validator().validate(schema1, generated);
 
                     // Does it also pass Everit?
