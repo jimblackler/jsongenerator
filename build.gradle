@@ -15,7 +15,7 @@ repositories {
 }
 
 dependencies {
-    implementation 'net.jimblackler:jsonschemafriend:0.7.12'
+    implementation 'net.jimblackler:jsonschemafriend:0.7.13'
     implementation 'org.json:json:20200518'
     //implementation 'com.github.jimblackler:JSON-java:v0.3-alpha'
     testImplementation 'com.github.everit-org.json-schema:org.everit.json.schema:1.12.1'
