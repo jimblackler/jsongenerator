@@ -7,6 +7,7 @@ sourceCompatibility = JavaVersion.VERSION_1_8
 targetCompatibility = JavaVersion.VERSION_1_8
 
 repositories {
+    mavenLocal()
     mavenCentral()
     maven {
         url 'https://jitpack.io'
@@ -14,7 +15,7 @@ repositories {
 }
 
 dependencies {
-    implementation 'com.github.jimblackler.jsonschematypes:jsonschemafriend:0.7.14'
+    implementation 'net.jimblackler:jsonschemafriend:0.9.1'
     implementation 'org.json:json:20200518'
     testImplementation 'com.github.everit-org.json-schema:org.everit.json.schema:1.12.1'
     testImplementation 'org.junit.jupiter:junit-jupiter-api:5.6.2'
@@ -31,7 +32,7 @@ afterEvaluate {
             release(MavenPublication) {
                 group = 'net.jimblackler'
                 artifactId = 'jsongenerator'
-                version = '0.4.2'
+                version = '0.4.3'
                 artifact(sourceJar)
                 from components.java
             }
