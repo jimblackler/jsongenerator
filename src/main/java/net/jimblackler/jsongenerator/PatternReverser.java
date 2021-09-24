@@ -12,7 +12,7 @@ public class PatternReverser {
   private final javax.script.ScriptEngine scriptEngine;
 
   public PatternReverser() throws IOException {
-    scriptEngine = new javax.script.ScriptEngineManager().getEngineByName("js");
+    scriptEngine = new javax.script.ScriptEngineManager().getEngineByName("rhino");
     if (scriptEngine == null) {
       throw new IllegalStateException("Could not initialize script engine");
     }
