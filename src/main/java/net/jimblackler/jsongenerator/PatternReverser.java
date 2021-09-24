@@ -13,8 +13,9 @@ public class PatternReverser {
       new javax.script.ScriptEngineManager().getEngineByName("js");
 
   public PatternReverser() throws IOException {
-    String randexp_js = load(URI.create(
-        "https://raw.githubusercontent.com/fent/randexp.js/master/build/randexp.min.js"));
+    String randexp_js = load(
+        URI.create("https://raw.githubusercontent.com/fent/randexp.js/master/build/randexp.min.js"),
+        true);
     String random_js = streamToString(PatternReverser.class.getResourceAsStream("/random.js"));
     try {
       scriptEngine.eval("window = {};");

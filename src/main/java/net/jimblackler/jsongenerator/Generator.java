@@ -14,6 +14,7 @@ import java.util.Collections;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.Iterator;
+import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Random;
@@ -21,8 +22,6 @@ import net.jimblackler.jsonschemafriend.CombinedSchema;
 import net.jimblackler.jsonschemafriend.GenerationException;
 import net.jimblackler.jsonschemafriend.Schema;
 import net.jimblackler.jsonschemafriend.SchemaStore;
-import org.json.JSONArray;
-import org.json.JSONObject;
 
 public class Generator {
   public static final Map<String, String> FORMAT_REGEXES;
@@ -263,13 +262,13 @@ public class Generator {
 
         boolean uniqueItems = schema.isUniqueItems();
         Collection<Object> alreadyIncluded = new HashSet<>();
-        JSONArray jsonArray = new JSONArray();
+        Collection<Object> jsonArray = new ArrayList<>();
         for (Schema schema1 : schemas) {
           Object value = generateUnvalidated(schema1, (int) (0.7f * maxTreeSize));
           if (uniqueItems && !alreadyIncluded.add(value)) {
             continue;
           }
-          jsonArray.put(value);
+          jsonArray.add(value);
         }
         return jsonArray;
       }
@@ -376,10 +375,10 @@ public class Generator {
           }
         }
 
-        JSONObject jsonObject = new JSONObject();
+        Map<String, Object> jsonObject = new LinkedHashMap<>();
         for (Map.Entry<String, Schema> entries : schemas.entrySet()) {
           String key = entries.getKey();
-          if (jsonObject.has(key)) {
+          if (jsonObject.containsKey(key)) {
             throw new IllegalStateException();
           }
           int size = jsonObject.keySet().size();

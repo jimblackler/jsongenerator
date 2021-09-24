@@ -10,6 +10,7 @@ import java.util.ArrayList;
 import java.util.Collection;
 import java.util.HashSet;
 import java.util.Iterator;
+import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Random;
@@ -41,8 +42,6 @@ import net.jimblackler.jsonschemafriend.TypeError;
 import net.jimblackler.jsonschemafriend.UniqueItemsError;
 import net.jimblackler.jsonschemafriend.ValidationError;
 import net.jimblackler.jsonschemafriend.Validator;
-import org.json.JSONArray;
-import org.json.JSONObject;
 
 public class Fixer {
   static Object fixUp(Schema schema, Object object, Generator generator, Random random,
@@ -133,7 +132,7 @@ public class Fixer {
     if (error instanceof MissingPropertyError) {
       MissingPropertyError error1 = (MissingPropertyError) error;
       String property = error1.getProperty();
-      JSONObject jsonObject = (JSONObject) object;
+      Map<String, Object> jsonObject = (Map<String, Object>) object;
       jsonObject.put(property, 0);
       return object;
     }
@@ -141,7 +140,7 @@ public class Fixer {
     if (error instanceof DependencyError) {
       DependencyError error1 = (DependencyError) error;
       String property = error1.getDependency();
-      JSONObject jsonObject = (JSONObject) object;
+      Map<String, Object> jsonObject = (Map<String, Object>) object;
       jsonObject.put(property, 0);
       return object;
     }
@@ -177,9 +176,9 @@ public class Fixer {
     }
 
     if (error instanceof MinItemsError) {
-      JSONArray array = (JSONArray) object;
-      while (array.length() < schema.getMinItems().intValue()) {
-        array.put(0);
+      List<Object> array = (List<Object>) object;
+      while (array.size() < schema.getMinItems().intValue()) {
+        array.add(0);
       }
       return array;
     }
@@ -191,7 +190,7 @@ public class Fixer {
       String type = randomElement(random, expectedTypes);
       switch (type) {
         case "array":
-          return new JSONArray();
+          return new LinkedHashMap<String, Object>();
         case "boolean":
           return false;
         case "integer":
@@ -201,7 +200,7 @@ public class Fixer {
         case "number":
           return 0.1;
         case "object":
-          return new JSONObject();
+          return new LinkedHashMap<String, Object>();
         case "string":
           return "";
         default:
@@ -221,12 +220,12 @@ public class Fixer {
 
     if (error instanceof MinPropertiesError) {
       int minProperties = schema.getMinProperties().intValue();
-      JSONObject jsonObject = (JSONObject) object;
+      Map<String, Object> jsonObject = (Map<String, Object>) object;
       Map<String, Schema> properties = schema.getProperties();
       for (Map.Entry<String, Schema> entry : properties.entrySet()) {
         jsonObject.put(entry.getKey(), 0);
       }
-      while (jsonObject.length() < minProperties) {
+      while (jsonObject.size() < minProperties) {
         Collection<String> patternPropertiesPatterns = schema.getPatternPropertiesPatterns();
         Collection<Schema> patternPropertiesSchema = schema.getPatternPropertiesSchema();
         if (patternPropertiesPatterns.isEmpty()) {
@@ -252,9 +251,9 @@ public class Fixer {
     }
 
     if (error instanceof MaxPropertiesError) {
-      JSONObject jsonObject = (JSONObject) object;
+      Map<String, Object> jsonObject = (Map<String, Object>) object;
       int maxProperties = schema.getMaxProperties().intValue();
-      while (jsonObject.length() > maxProperties) {
+      while (jsonObject.size() > maxProperties) {
         String propertyName = randomElement(random, jsonObject.keySet());
         jsonObject.remove(propertyName);
       }
@@ -262,13 +261,13 @@ public class Fixer {
     }
 
     if (error instanceof UniqueItemsError) {
-      JSONArray jsonArray = (JSONArray) object;
-      JSONArray out = new JSONArray();
-      Set<String> included = new HashSet<>();
-      for (int idx = 0; idx != jsonArray.length(); idx++) {
+      List<Object> jsonArray = (List<Object>) object;
+      Collection<Object> out = new ArrayList<>();
+      Collection<String> included = new HashSet<>();
+      for (int idx = 0; idx != jsonArray.size(); idx++) {
         Object obj = jsonArray.get(idx);
         if (included.add(obj.toString())) {
-          out.put(obj);
+          out.add(obj);
         }
       }
       return out;

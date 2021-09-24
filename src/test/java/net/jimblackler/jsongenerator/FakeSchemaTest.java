@@ -2,23 +2,28 @@ package net.jimblackler.jsongenerator;
 
 import static org.junit.jupiter.api.DynamicTest.dynamicTest;
 
+import com.fasterxml.jackson.databind.ObjectMapper;
+import com.fasterxml.jackson.databind.ObjectWriter;
 import java.util.ArrayList;
 import java.util.Collection;
+import java.util.LinkedHashMap;
+import java.util.Map;
 import java.util.Random;
 import net.jimblackler.jsonschemafriend.GenerationException;
 import net.jimblackler.jsonschemafriend.Schema;
 import net.jimblackler.jsonschemafriend.SchemaStore;
 import net.jimblackler.jsonschemafriend.Validator;
-import org.json.JSONObject;
 import org.junit.jupiter.api.DynamicNode;
 import org.junit.jupiter.api.TestFactory;
 
 public class FakeSchemaTest {
   @TestFactory
   Collection<DynamicNode> all() throws GenerationException {
+    ObjectMapper objectMapper = new ObjectMapper();
+    ObjectWriter objectWriter = objectMapper.writerWithDefaultPrettyPrinter();
     Collection<DynamicNode> testsOut = new ArrayList<>();
 
-    JSONObject schemaObject = new JSONObject();
+    Map<String, Object> schemaObject = new LinkedHashMap<>();
     String metaSchema = "http://json-schema.org/draft-07/schema#";
     schemaObject.put("$ref", metaSchema);
     schemaObject.put("$schema", metaSchema);
@@ -52,11 +57,11 @@ public class FakeSchemaTest {
         }, schemaStore, new Random(finalAttempt));
         Object generated = generator.generate(schema, 16);
 
-        System.out.println(JsonUtils.toString(generated));
+        System.out.println(objectWriter.writeValueAsString(generated));
         new Validator().validate(schema, generated);
 
-        if (generated instanceof JSONObject) {
-          ((JSONObject) generated).put("$schema", metaSchema);
+        if (generated instanceof Map) {
+          ((Map<String, Object>) generated).put("$schema", metaSchema);
         }
 
         // Now convert to schema.

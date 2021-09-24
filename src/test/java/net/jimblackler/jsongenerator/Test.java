@@ -1,5 +1,7 @@
 package net.jimblackler.jsongenerator;
 
+import com.fasterxml.jackson.databind.ObjectMapper;
+import com.fasterxml.jackson.databind.ObjectWriter;
 import java.io.BufferedWriter;
 import java.io.FileWriter;
 import java.io.IOException;
@@ -12,13 +14,13 @@ import net.jimblackler.jsonschemafriend.Schema;
 import net.jimblackler.jsonschemafriend.SchemaException;
 import net.jimblackler.jsonschemafriend.SchemaStore;
 import net.jimblackler.jsonschemafriend.Validator;
-import org.json.JSONArray;
-import org.json.JSONObject;
 
 public class Test {
   public static final FileSystem FILE_SYSTEM = FileSystems.getDefault();
 
   public static void main(String[] args) throws URISyntaxException, SchemaException, IOException {
+    ObjectMapper objectMapper = new ObjectMapper();
+    ObjectWriter objectWriter = objectMapper.writerWithDefaultPrettyPrinter();
     Path outDir = FILE_SYSTEM.getPath("out");
     if (!outDir.toFile().exists()) {
       outDir.toFile().mkdir();
@@ -53,7 +55,7 @@ public class Test {
 
     new Validator().validate(schema, object);
     try (BufferedWriter writer = new BufferedWriter(new FileWriter(out.toFile()))) {
-      writer.write(JsonUtils.toString(object));
+      writer.write(objectWriter.writeValueAsString(object));
     }
   }
 }
