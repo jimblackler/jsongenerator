@@ -9,10 +9,12 @@ import java.util.Random;
 import javax.script.ScriptException;
 
 public class PatternReverser {
-  private final javax.script.ScriptEngine scriptEngine =
-      new javax.script.ScriptEngineManager().getEngineByName("js");
+  private javax.script.ScriptEngine scriptEngine;
 
   public PatternReverser() throws IOException {
+    if (scriptEngine == null) {
+      initScriptEngine();
+    }
     String randexp_js = load(
         URI.create("https://raw.githubusercontent.com/fent/randexp.js/master/build/randexp.min.js"),
         true);
@@ -27,6 +29,9 @@ public class PatternReverser {
   }
 
   public String reverse(String pattern, Random random) {
+    if (scriptEngine == null) {
+      initScriptEngine();
+    }
     scriptEngine.put("pattern", pattern);
     scriptEngine.put("seed", random.nextInt());
 
@@ -36,6 +41,13 @@ public class PatternReverser {
       return eval.toString();
     } catch (ScriptException e) {
       throw new IllegalStateException(e);
+    }
+  }
+
+  private void initScriptEngine() {
+    scriptEngine = new javax.script.ScriptEngineManager().getEngineByName("js");
+    if (scriptEngine == null) {
+      throw new IllegalStateException("Could not initialize script engine");
     }
   }
 }
