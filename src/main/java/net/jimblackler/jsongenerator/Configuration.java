@@ -7,5 +7,9 @@ public interface Configuration {
 
   boolean isGenerateMinimal();
 
+  boolean isGenerateAdditionalProperties();
+
+  boolean useRomanCharsOnly();
+
   float nonRequiredPropertyChance();
 }
