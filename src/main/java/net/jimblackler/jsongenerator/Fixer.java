@@ -45,7 +45,7 @@ import net.jimblackler.jsonschemafriend.Validator;
 
 public class Fixer {
   static Object fixUp(Schema schema, Object object, Generator generator, Random random,
-      PatternReverser patternReverser) throws JsonGeneratorException {
+      PatternReverser patternReverser, boolean useRomanCharsOnly) throws JsonGeneratorException {
     int attempt = 0;
     Set<String> considered = new HashSet<>();
     while (true) {
@@ -101,7 +101,7 @@ public class Fixer {
 
         try {
           Object objectToFix = Validator.getObject(object, uri);
-          Object fixed = fix(objectToFix, error, generator, random, patternReverser);
+          Object fixed = fix(objectToFix, error, generator, random, patternReverser, useRomanCharsOnly);
           if (objectToFix == object) {
             object = fixed;
           } else if (objectToFix != fixed) {
@@ -118,7 +118,7 @@ public class Fixer {
   }
 
   private static Object fix(Object object, ValidationError error, Generator generator,
-      Random random, PatternReverser patternReverser) throws JsonGeneratorException {
+      Random random, PatternReverser patternReverser, boolean useRomanCharsOnly) throws JsonGeneratorException {
     Schema schema = error.getSchema();
     if (error instanceof ConstError) {
       return schema.getConst();
@@ -215,7 +215,7 @@ public class Fixer {
 
     if (error instanceof MinLengthError || error instanceof MaxLengthError) {
       long minLength = getLong(schema.getMinLength(), 0);
-      return randomString(random, (int) minLength, (int) minLength + 5);
+      return randomString(random, (int) minLength, (int) minLength + 5, useRomanCharsOnly);
     }
 
     if (error instanceof MinPropertiesError) {
@@ -229,7 +229,7 @@ public class Fixer {
         Collection<String> patternPropertiesPatterns = schema.getPatternPropertiesPatterns();
         Collection<Schema> patternPropertiesSchema = schema.getPatternPropertiesSchema();
         if (patternPropertiesPatterns.isEmpty()) {
-          jsonObject.put(randomString(random, 1, 20), 0);
+          jsonObject.put(randomString(random, 1, 20, useRomanCharsOnly), 0);
         } else {
           int index = random.nextInt(patternPropertiesPatterns.size());
           Iterator<String> it0 = patternPropertiesPatterns.iterator();
