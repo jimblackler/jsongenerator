@@ -9,7 +9,7 @@ public class StringUtils {
     if (maxLength <= minLength) {
       throw new IllegalStateException();
     }
-    //boolean limitChars = random.nextInt(10) < 8;
+    
     StringBuilder stringBuilder = new StringBuilder();
     int length = random.nextInt(maxLength - minLength) + minLength;
     for (int idx = 0; idx != length; idx++) {
