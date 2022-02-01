@@ -18,6 +18,9 @@ import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Random;
+import net.jimblackler.jsongenerator.format.DateGenerator;
+import net.jimblackler.jsongenerator.format.DateTimeGenerator;
+import net.jimblackler.jsongenerator.format.StringGenerator;
 import net.jimblackler.jsonschemafriend.CombinedSchema;
 import net.jimblackler.jsonschemafriend.GenerationException;
 import net.jimblackler.jsonschemafriend.Schema;
@@ -57,17 +60,26 @@ public class Generator {
   private final Random random;
   private final PatternReverser patternReverser;
   private final Schema anySchema;
+  private final Map<String, StringGenerator> stringGenerators;
 
   public Generator(Configuration configuration, SchemaStore schemaStore, Random random)
       throws GenerationException {
     this.configuration = configuration;
     this.random = random;
     anySchema = schemaStore.loadSchema(true);
+    this.stringGenerators = createStringGenerators(random);
     try {
       patternReverser = new PatternReverser();
     } catch (IOException e) {
       throw new GenerationException(e);
     }
+  }
+
+  private static Map<String, StringGenerator> createStringGenerators(Random random) {
+    Map<String, StringGenerator> generators = new HashMap<>();
+    generators.put("date", new DateGenerator(random));
+    generators.put("date-time", new DateTimeGenerator(random));
+    return generators;
   }
 
   public Schema getAnySchema() {
@@ -190,6 +202,11 @@ public class Generator {
         return value;
       }
       case "string": {
+        StringGenerator generator = stringGenerators.get(schema.getFormat());
+        if (generator != null) {
+          return generator.get();
+        }
+
         String pattern0 = FORMAT_REGEXES.get(schema.getFormat());
         if (pattern0 != null) {
           return patternReverser.reverse(pattern0, random);

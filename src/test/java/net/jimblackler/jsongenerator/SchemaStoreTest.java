@@ -65,6 +65,16 @@ public class SchemaStoreTest {
             }
 
             @Override
+            public boolean isGenerateAdditionalProperties() {
+              return false;
+            }
+
+            @Override
+            public boolean useRomanCharsOnly() {
+              return false;
+            }
+
+            @Override
             public float nonRequiredPropertyChance() {
               return 0.5f;
             }
