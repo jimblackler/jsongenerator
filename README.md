@@ -1,8 +1,12 @@
-A JSON data generator from JSON Schemas, provided as a Java library.
+# Json Generator
 
-It is available on JitPack.
-[![](https://jitpack.io/v/net.jimblackler/jsongenerator.svg)](https://jitpack.io/#net.jimblackler/jsongenerator)
+This is a Json object generator used in Airbyte. It is based on the [jsongenerator](https://github.com/jimblackler/jsongenerator) authored by [Jim Blackler](https://github.com/jimblackler).
 
-An online demonstration [is here](https://tryjsonschematypes.appspot.com/#generate).
+## Changes
+- Add a `DefaultConfig` implementation of the `Configuration` interface.
+- Generate valid `date` and `date-time` fields more efficiently.
+- Set min object properties to `1`.
+- Set min array items to `1`.
 
-Written by jimblackler@gmail.com and offered under an Apache 2.0 license.
+## License
+The original [jsongenerator](https://github.com/jimblackler/jsongenerator) is licensed under [Apache 2.0](LICENSE).

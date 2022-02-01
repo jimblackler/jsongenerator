@@ -18,6 +18,9 @@ import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Random;
+import net.jimblackler.jsongenerator.format.DateGenerator;
+import net.jimblackler.jsongenerator.format.DateTimeGenerator;
+import net.jimblackler.jsongenerator.format.StringGenerator;
 import net.jimblackler.jsonschemafriend.CombinedSchema;
 import net.jimblackler.jsonschemafriend.GenerationException;
 import net.jimblackler.jsonschemafriend.Schema;
@@ -27,6 +30,8 @@ public class Generator {
   public static final Map<String, String> FORMAT_REGEXES;
   private static final int MAX_STRING_LENGTH = 15;
   private static final int MAX_ADDITIONAL_PROPERTIES_KEY_LENGTH = 15;
+  private static final int MIN_OBJECT_PROPERTIES = 1;
+  private static final int MIN_ARRAY_ITEMS = 1;
 
   static {
     Map<String, String> _formatRegex = new HashMap<>();
@@ -57,17 +62,26 @@ public class Generator {
   private final Random random;
   private final PatternReverser patternReverser;
   private final Schema anySchema;
+  private final Map<String, StringGenerator> stringGenerators;
 
   public Generator(Configuration configuration, SchemaStore schemaStore, Random random)
       throws GenerationException {
     this.configuration = configuration;
     this.random = random;
     anySchema = schemaStore.loadSchema(true);
+    this.stringGenerators = createStringGenerators(random);
     try {
       patternReverser = new PatternReverser();
     } catch (IOException e) {
       throw new GenerationException(e);
     }
+  }
+
+  private static Map<String, StringGenerator> createStringGenerators(Random random) {
+    Map<String, StringGenerator> generators = new HashMap<>();
+    generators.put("date", new DateGenerator(random));
+    generators.put("date-time", new DateTimeGenerator(random));
+    return generators;
   }
 
   public Schema getAnySchema() {
@@ -190,6 +204,11 @@ public class Generator {
         return value;
       }
       case "string": {
+        StringGenerator generator = stringGenerators.get(schema.getFormat());
+        if (generator != null) {
+          return generator.get();
+        }
+
         String pattern0 = FORMAT_REGEXES.get(schema.getFormat());
         if (pattern0 != null) {
           return patternReverser.reverse(pattern0, random);
@@ -214,7 +233,7 @@ public class Generator {
         long minItems = getLong(schema.getMinItems(), 0);
         long maxItems = getLong(schema.getMaxItems(), Integer.MAX_VALUE);
 
-        long length = random.nextInt(Math.max(maxTreeSize, 0) + 1);
+        long length = random.nextInt(MIN_ARRAY_ITEMS, Math.max(maxTreeSize, 0) + 1);
         if (length < minItems) {
           length = minItems;
         }
@@ -280,7 +299,7 @@ public class Generator {
         long minProperties = getLong(schema.getMinProperties(), 0);
         long maxProperties = getLong(schema.getMaxProperties(), Integer.MAX_VALUE);
 
-        long length = random.nextInt(Math.max(maxTreeSize, 0) + 1);
+        long length = random.nextInt(MIN_OBJECT_PROPERTIES, Math.max(maxTreeSize, 0) + 1);
         if (length < minProperties) {
           length = minProperties;
         }
