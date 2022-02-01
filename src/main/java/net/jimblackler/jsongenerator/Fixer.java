@@ -58,12 +58,6 @@ public class Fixer {
 
       attempt++;
 
-      System.out.println("Attempt " + attempt + ":");
-      for (ValidationError error : errors) {
-        System.out.println(error);
-      }
-      System.out.println();
-
       if (!considered.add(object.toString())) {
         break;
       }
