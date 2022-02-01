@@ -14,9 +14,6 @@ public class DateTimeGenerator implements StringGenerator {
   private static final DateFormat FORMAT = new SimpleDateFormat("yyyy-MM-dd'T'HH:mm:ss.SSS");
   private final long maxEpochMillis = Instant.now().getEpochSecond() * 1000 * 2;
 
-  public DateTimeGenerator() {
-  }
-
   @Override
   public String get(Random random) {
     final long randomEpochMillis = (long) (random.nextDouble() * maxEpochMillis);

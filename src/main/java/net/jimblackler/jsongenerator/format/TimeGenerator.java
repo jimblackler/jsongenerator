@@ -12,10 +12,6 @@ public class TimeGenerator implements StringGenerator {
 
   private static final DateTimeFormatter FORMAT = new DateTimeFormatterBuilder().appendPattern("HH:mm:ss.SSS").toFormatter();
 
-  protected TimeGenerator() {
-
-  }
-
   @Override
   public String get(Random random) {
     // append Z manually to mark the time as UTC
