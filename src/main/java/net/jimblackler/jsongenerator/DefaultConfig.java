@@ -2,34 +2,74 @@ package net.jimblackler.jsongenerator;
 
 public class DefaultConfig implements Configuration {
 
+  private boolean pedanticTypes = true;
+  private boolean generateNulls = false;
+  private boolean generateMinimal = false;
+  private boolean generateAdditionalProperties = false;
+  private boolean useRomanCharsOnly = true;
+  private float nonRequiredPropertyChance = 1.0f;
+
+  public DefaultConfig() {
+  }
+
+  public DefaultConfig setPedanticTypes(boolean pedanticTypes) {
+    this.pedanticTypes = pedanticTypes;
+    return this;
+  }
+
   @Override
   public boolean isPedanticTypes() {
-    return true;
+    return pedanticTypes;
+  }
+
+  public DefaultConfig setGenerateNulls(boolean generateNulls) {
+    this.generateNulls = generateNulls;
+    return this;
   }
 
   @Override
   public boolean isGenerateNulls() {
-    return false;
+    return generateNulls;
+  }
+
+  public DefaultConfig setGenerateMinimal(boolean generateMinimal) {
+    this.generateMinimal = generateMinimal;
+    return this;
   }
 
   @Override
   public boolean isGenerateMinimal() {
-    return false;
+    return generateMinimal;
+  }
+
+  public DefaultConfig setGenerateAdditionalProperties(boolean generateAdditionalProperties) {
+    this.generateAdditionalProperties = generateAdditionalProperties;
+    return this;
   }
 
   @Override
   public boolean isGenerateAdditionalProperties() {
-    return false;
+    return generateAdditionalProperties;
+  }
+
+  public DefaultConfig setUseRomanCharsOnly(boolean useRomanCharsOnly) {
+    this.useRomanCharsOnly = useRomanCharsOnly;
+    return this;
   }
 
   @Override
   public boolean useRomanCharsOnly() {
-    return true;
+    return useRomanCharsOnly;
+  }
+
+  public DefaultConfig setNonRequiredPropertyChance(float nonRequiredPropertyChance) {
+    this.nonRequiredPropertyChance = nonRequiredPropertyChance;
+    return this;
   }
 
   @Override
   public float nonRequiredPropertyChance() {
-    return 1.0f;
+    return nonRequiredPropertyChance;
   }
 
 }
