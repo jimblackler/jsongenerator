@@ -30,6 +30,8 @@ public class Generator {
   public static final Map<String, String> FORMAT_REGEXES;
   private static final int MAX_STRING_LENGTH = 15;
   private static final int MAX_ADDITIONAL_PROPERTIES_KEY_LENGTH = 15;
+  private static final int MIN_OBJECT_PROPERTIES = 1;
+  private static final int MIN_ARRAY_ITEMS = 1;
 
   static {
     Map<String, String> _formatRegex = new HashMap<>();
@@ -231,7 +233,7 @@ public class Generator {
         long minItems = getLong(schema.getMinItems(), 0);
         long maxItems = getLong(schema.getMaxItems(), Integer.MAX_VALUE);
 
-        long length = random.nextInt(Math.max(maxTreeSize, 0) + 1);
+        long length = random.nextInt(MIN_ARRAY_ITEMS, Math.max(maxTreeSize, 0) + 1);
         if (length < minItems) {
           length = minItems;
         }
@@ -297,7 +299,7 @@ public class Generator {
         long minProperties = getLong(schema.getMinProperties(), 0);
         long maxProperties = getLong(schema.getMaxProperties(), Integer.MAX_VALUE);
 
-        long length = random.nextInt(Math.max(maxTreeSize, 0) + 1);
+        long length = random.nextInt(MIN_OBJECT_PROPERTIES, Math.max(maxTreeSize, 0) + 1);
         if (length < minProperties) {
           length = minProperties;
         }
