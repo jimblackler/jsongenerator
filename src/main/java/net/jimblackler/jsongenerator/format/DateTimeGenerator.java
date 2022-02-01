@@ -21,11 +21,4 @@ public class DateTimeGenerator extends BaseStringGenerator implements StringGene
     return FORMAT.format(Date.from(Instant.ofEpochMilli(randomEpochMillis)));
   }
 
-  public static void main(String[] args) {
-    DateTimeGenerator generator = new DateTimeGenerator(new Random());
-    for (int i = 0; i < 10; ++i) {
-      System.out.println(generator.get());
-    }
-  }
-
 }
