@@ -31,37 +31,15 @@ public class Test {
     SchemaStore schemaStore = new SchemaStore();
     Schema schema = schemaStore.loadSchema(Test.class.getResource(file.toString()).toURI());
 
-    Object object = new Generator(new Configuration() {
-      @Override
-      public boolean isPedanticTypes() {
-        return false;
-      }
-
-      @Override
-      public boolean isGenerateNulls() {
-        return false;
-      }
-
-      @Override
-      public boolean isGenerateMinimal() {
-        return true;
-      }
-
-      @Override
-      public boolean isGenerateAdditionalProperties() {
-        return false;
-      }
-
-      @Override
-      public boolean useRomanCharsOnly() {
-        return false;
-      }
-
-      @Override
-      public float nonRequiredPropertyChance() {
-        return 0.5f;
-      }
-    }, schemaStore, new Random(1)).generate(schema, 16);
+    Configuration config = DefaultConfig.build()
+        .setPedanticTypes(false)
+        .setGenerateNulls(false)
+        .setGenerateMinimal(true)
+        .setGenerateAdditionalProperties(false)
+        .setUseRomanCharsOnly(false)
+        .setNonRequiredPropertyChance(0.5f)
+        .get();
+    Object object = new Generator(config, schemaStore, new Random(1)).generate(schema, 16);
 
     new Validator().validate(schema, object);
     try (BufferedWriter writer = new BufferedWriter(new FileWriter(out.toFile()))) {

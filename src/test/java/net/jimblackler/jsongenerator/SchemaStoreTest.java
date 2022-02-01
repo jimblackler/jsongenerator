@@ -48,37 +48,15 @@ public class SchemaStoreTest {
           System.out.println("Schema:");
           System.out.println(objectWriter.writeValueAsString(schema.getSchemaObject()));
           System.out.println();
-          Object generated = new Generator(new Configuration() {
-            @Override
-            public boolean isPedanticTypes() {
-              return false;
-            }
-
-            @Override
-            public boolean isGenerateNulls() {
-              return false;
-            }
-
-            @Override
-            public boolean isGenerateMinimal() {
-              return false;
-            }
-
-            @Override
-            public boolean isGenerateAdditionalProperties() {
-              return false;
-            }
-
-            @Override
-            public boolean useRomanCharsOnly() {
-              return false;
-            }
-
-            @Override
-            public float nonRequiredPropertyChance() {
-              return 0.5f;
-            }
-          }, schemaStore, new Random(1)).generate(schema, 16);
+          Configuration config = DefaultConfig.build()
+              .setPedanticTypes(false)
+              .setGenerateNulls(false)
+              .setGenerateMinimal(false)
+              .setGenerateAdditionalProperties(false)
+              .setUseRomanCharsOnly(false)
+              .setNonRequiredPropertyChance(0.5f)
+              .get();
+          Object generated = new Generator(config, schemaStore, new Random(1)).generate(schema, 16);
 
           System.out.println(objectWriter.writeValueAsString(generated));
           new Validator().validate(schema, generated);
