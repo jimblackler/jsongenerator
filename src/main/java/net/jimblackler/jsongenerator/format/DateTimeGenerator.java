@@ -8,7 +8,7 @@ import java.util.Random;
 
 public class DateTimeGenerator extends BaseStringGenerator implements StringGenerator {
 
-  private static final DateFormat FORMAT = new SimpleDateFormat("yyyy-MM-dd'T'HH:mm:ss.SSSZ");
+  private static final DateFormat FORMAT = new SimpleDateFormat("yyyy-MM-dd'T'HH:mm:ss.SSS");
   private final long maxEpochMillis = Instant.now().getEpochSecond() * 1000;
 
   public DateTimeGenerator(Random random) {
@@ -18,7 +18,8 @@ public class DateTimeGenerator extends BaseStringGenerator implements StringGene
   @Override
   public String get() {
     final long randomEpochMillis = random.nextLong(maxEpochMillis);
-    return FORMAT.format(Date.from(Instant.ofEpochMilli(randomEpochMillis)));
+    // append Z manually to mark the time as UTC
+    return FORMAT.format(Date.from(Instant.ofEpochMilli(randomEpochMillis))) + "Z";
   }
 
 }
