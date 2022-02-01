@@ -9,12 +9,12 @@ public class DefaultConfig implements Configuration {
   private final boolean useRomanCharsOnly;
   private final float nonRequiredPropertyChance;
 
-  private DefaultConfig(boolean pedanticTypes,
-                        boolean generateNulls,
-                        boolean generateMinimal,
-                        boolean generateAdditionalProperties,
-                        boolean useRomanCharsOnly,
-                        float nonRequiredPropertyChance) {
+  public DefaultConfig(boolean pedanticTypes,
+                       boolean generateNulls,
+                       boolean generateMinimal,
+                       boolean generateAdditionalProperties,
+                       boolean useRomanCharsOnly,
+                       float nonRequiredPropertyChance) {
     this.pedanticTypes = pedanticTypes;
     this.generateNulls = generateNulls;
     this.generateMinimal = generateMinimal;
