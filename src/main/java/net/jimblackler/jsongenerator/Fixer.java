@@ -46,7 +46,6 @@ import net.jimblackler.jsonschemafriend.Validator;
 public class Fixer {
   static Object fixUp(Schema schema, Object object, Generator generator, Random random,
       PatternReverser patternReverser, boolean useRomanCharsOnly) throws JsonGeneratorException {
-    int attempt = 0;
     Set<String> considered = new HashSet<>();
     while (true) {
       Collection<ValidationError> errors = new ArrayList<>();
@@ -55,14 +54,6 @@ public class Fixer {
       if (errors.isEmpty()) {
         break;
       }
-
-      attempt++;
-
-      System.out.println("Attempt " + attempt + ":");
-      for (ValidationError error : errors) {
-        System.out.println(error);
-      }
-      System.out.println();
 
       if (!considered.add(object.toString())) {
         break;
