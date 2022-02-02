@@ -17,7 +17,9 @@ import java.util.Iterator;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Optional;
 import java.util.Random;
+import net.jimblackler.jsongenerator.format.FormattedStringGenerators;
 import net.jimblackler.jsonschemafriend.CombinedSchema;
 import net.jimblackler.jsonschemafriend.GenerationException;
 import net.jimblackler.jsonschemafriend.Schema;
@@ -57,17 +59,19 @@ public class Generator {
   private final Random random;
   private final PatternReverser patternReverser;
   private final Schema anySchema;
+  private final FormattedStringGenerators generators;
 
   public Generator(Configuration configuration, SchemaStore schemaStore, Random random)
       throws GenerationException {
     this.configuration = configuration;
     this.random = random;
-    anySchema = schemaStore.loadSchema(true);
+    this.anySchema = schemaStore.loadSchema(true);
     try {
-      patternReverser = new PatternReverser();
+      this.patternReverser = new PatternReverser();
     } catch (IOException e) {
       throw new GenerationException(e);
     }
+    this.generators = new FormattedStringGenerators();
   }
 
   public Schema getAnySchema() {
@@ -190,6 +194,11 @@ public class Generator {
         return value;
       }
       case "string": {
+        Optional<String> formattedString = generators.get(schema.getFormat(), random);
+        if (formattedString.isPresent()) {
+          return formattedString.get();
+        }
+
         String pattern0 = FORMAT_REGEXES.get(schema.getFormat());
         if (pattern0 != null) {
           return patternReverser.reverse(pattern0, random);
