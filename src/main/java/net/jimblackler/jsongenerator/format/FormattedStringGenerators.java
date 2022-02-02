@@ -14,6 +14,7 @@ public class FormattedStringGenerators {
       put("date", new DateGenerator());
       put("time", new TimeGenerator());
       put("date-time", new DateTimeGenerator());
+      put("uuid", new UuidGenerator());
     }};
   }
 
