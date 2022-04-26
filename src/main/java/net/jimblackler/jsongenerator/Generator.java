@@ -25,8 +25,8 @@ import net.jimblackler.jsonschemafriend.SchemaStore;
 
 public class Generator {
   public static final Map<String, String> FORMAT_REGEXES;
-  private static final int MAX_STRING_LENGTH = 60;
-  private static final int MAX_ADDITIONAL_PROPERTIES_KEY_LENGTH = 50;
+  private static final int MAX_STRING_LENGTH = 15;
+  private static final int MAX_ADDITIONAL_PROPERTIES_KEY_LENGTH = 15;
 
   static {
     Map<String, String> _formatRegex = new HashMap<>();
@@ -87,7 +87,7 @@ public class Generator {
       object = generateUnvalidated(schema, maxTreeSize);
     }
 
-    return fixUp(schema, object, this, random, patternReverser);
+    return fixUp(schema, object, this, random, patternReverser, configuration.useRomanCharsOnly());
   }
 
   private Object generateUnvalidated(Schema schema, int maxTreeSize) {
@@ -206,7 +206,7 @@ public class Generator {
           maxLength++;
         }
         long useMaxLength = Math.min(maxLength, minLength + MAX_STRING_LENGTH);
-        return randomString(random, (int) minLength, (int) useMaxLength);
+        return randomString(random, (int) minLength, (int) useMaxLength, configuration.useRomanCharsOnly());
       }
       case "array": {
         List<Schema> schemas = new ArrayList<>();
@@ -313,68 +313,68 @@ public class Generator {
             schemas.put(property, schema1);
           }
         }
+        if (configuration.isGenerateAdditionalProperties()) {
+          Collection<String> patternPropertiesPatterns = schema.getPatternPropertiesPatterns();
+          Schema additionalProperties = schema.getAdditionalProperties();
+          Schema propertyNameSchema = schema.getPropertyNames();
 
-        Collection<String> patternPropertiesPatterns = schema.getPatternPropertiesPatterns();
-        Schema additionalProperties = schema.getAdditionalProperties();
-        Schema propertyNameSchema = schema.getPropertyNames();
-
-        while (schemas.keySet().size() < length) {
-          if (patternPropertiesPatterns != null && !patternPropertiesPatterns.isEmpty()) {
-            Collection<Schema> patternPropertiesSchema = schema.getPatternPropertiesSchema();
-            int index = random.nextInt(patternPropertiesPatterns.size());
-            Iterator<String> it0 = patternPropertiesPatterns.iterator();
-            Iterator<Schema> it1 = patternPropertiesSchema.iterator();
-            while (index > 0) {
-              it0.next();
-              it1.next();
-              index--;
+          while (schemas.keySet().size() < length) {
+            if (patternPropertiesPatterns != null && !patternPropertiesPatterns.isEmpty()) {
+              Collection<Schema> patternPropertiesSchema = schema.getPatternPropertiesSchema();
+              int index = random.nextInt(patternPropertiesPatterns.size());
+              Iterator<String> it0 = patternPropertiesPatterns.iterator();
+              Iterator<Schema> it1 = patternPropertiesSchema.iterator();
+              while (index > 0) {
+                it0.next();
+                it1.next();
+                index--;
+              }
+              Schema schema1 = it1.next();
+              if (!schema1.isFalse()) {
+                String pattern = it0.next();
+                String str = patternReverser.reverse(pattern, random);
+                if (schemas.containsKey(str)) {
+                  // Probably an inflexible pattern. Let's just give up.
+                  break;
+                }
+                schemas.put(str, schema1);
+                continue;
+              }
             }
-            Schema schema1 = it1.next();
-            if (!schema1.isFalse()) {
-              String pattern = it0.next();
-              String str = patternReverser.reverse(pattern, random);
-              if (schemas.containsKey(str)) {
-                // Probably an inflexible pattern. Let's just give up.
+            if (additionalProperties != null && additionalProperties.isFalse()) {
+              break;
+            }
+
+            if (propertyNameSchema != null && propertyNameSchema.isFalse()) {
+              break;
+            }
+
+            String propertyName = null;
+
+            if (propertyNameSchema != null) {
+              Object propertyNameObject = generateUnvalidated(schema.getPropertyNames(), 1);
+              if (propertyNameObject instanceof String) {
+                propertyName = (String) propertyNameObject;
+              }
+            }
+
+            if (propertyName == null) {
+              propertyName = randomString(random, 1, MAX_ADDITIONAL_PROPERTIES_KEY_LENGTH, configuration.useRomanCharsOnly());
+            }
+
+            if (additionalProperties == null) {
+              schemas.put(propertyName, anySchema);
+              if (random.nextBoolean()) {
+                // We don't want to generate too many of these, as they look like gibberish, and one
+                // or two makes the point.
                 break;
               }
-              schemas.put(str, schema1);
+            } else {
+              schemas.put(propertyName, additionalProperties);
               continue;
             }
           }
-          if (additionalProperties != null && additionalProperties.isFalse()) {
-            break;
-          }
-
-          if (propertyNameSchema != null && propertyNameSchema.isFalse()) {
-            break;
-          }
-
-          String propertyName = null;
-
-          if (propertyNameSchema != null) {
-            Object propertyNameObject = generateUnvalidated(schema.getPropertyNames(), 1);
-            if (propertyNameObject instanceof String) {
-              propertyName = (String) propertyNameObject;
-            }
-          }
-
-          if (propertyName == null) {
-            propertyName = randomString(random, 1, MAX_ADDITIONAL_PROPERTIES_KEY_LENGTH);
-          }
-
-          if (additionalProperties == null) {
-            schemas.put(propertyName, anySchema);
-            if (random.nextBoolean()) {
-              // We don't want to generate too many of these, as they look like gibberish, and one
-              // or two makes the point.
-              break;
-            }
-          } else {
-            schemas.put(propertyName, additionalProperties);
-            continue;
-          }
         }
-
         Map<String, Object> jsonObject = new LinkedHashMap<>();
         for (Map.Entry<String, Schema> entries : schemas.entrySet()) {
           String key = entries.getKey();
