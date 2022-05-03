@@ -1,7 +1,5 @@
 package net.jimblackler.jsongenerator;
 
-import static net.jimblackler.jsonschemafriend.StreamUtils.streamToString;
-
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.ObjectReader;
 import com.fasterxml.jackson.databind.ObjectWriter;
@@ -19,8 +17,7 @@ import org.junit.jupiter.api.DynamicTest;
 import org.junit.jupiter.api.TestFactory;
 
 public class FromInternet {
-  private static final URI DEFAULT_METASCHEMA =
-      URI.create("http://json-schema.org/draft-07/schema#");
+  private static final URI DEFAULT_METASCHEMA = URI.create("http://json-schema.org/draft-07/schema#");
 
   @TestFactory
   Collection<DynamicTest> all() throws IOException {
@@ -44,37 +41,15 @@ public class FromInternet {
           System.out.println(objectWriter.writeValueAsString(schema.getSchemaObject()));
           System.out.println();
 
-          Object object = new Generator(new Configuration() {
-            @Override
-            public boolean isPedanticTypes() {
-              return false;
-            }
-
-            @Override
-            public boolean isGenerateNulls() {
-              return false;
-            }
-
-            @Override
-            public boolean isGenerateMinimal() {
-              return false;
-            }
-
-            @Override
-            public boolean isGenerateAdditionalProperties() {
-              return false;
-            }
-
-            @Override
-            public boolean useRomanCharsOnly() {
-              return false;
-            }
-
-            @Override
-            public float nonRequiredPropertyChance() {
-              return 0.5f;
-            }
-          }, schemaStore, new Random(1)).generate(schema, 20);
+          Configuration config = DefaultConfig.build()
+              .setPedanticTypes(false)
+              .setGenerateNulls(false)
+              .setGenerateMinimal(false)
+              .setGenerateAdditionalProperties(false)
+              .setUseRomanCharsOnly(false)
+              .setNonRequiredPropertyChance(0.5f)
+              .get();
+          Object object = new Generator(config, schemaStore, new Random(1)).generate(schema, 20);
           System.out.println("Data:");
           System.out.println(objectWriter.writeValueAsString(object));
           System.out.println();
