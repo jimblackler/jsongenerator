@@ -34,37 +34,15 @@ public class FakeSchemaTest {
       testsOut.add(dynamicTest("" + attempt, () -> {
         SchemaStore schemaStore = new SchemaStore();
 
-        Generator generator = new Generator(new Configuration() {
-          @Override
-          public boolean isPedanticTypes() {
-            return false;
-          }
-
-          @Override
-          public boolean isGenerateNulls() {
-            return false;
-          }
-
-          @Override
-          public boolean isGenerateMinimal() {
-            return false;
-          }
-
-          @Override
-          public boolean isGenerateAdditionalProperties() {
-            return false;
-          }
-
-          @Override
-          public boolean useRomanCharsOnly() {
-            return false;
-          }
-
-          @Override
-          public float nonRequiredPropertyChance() {
-            return 0.5f;
-          }
-        }, schemaStore, new Random(finalAttempt));
+        Configuration config = DefaultConfig.build()
+            .setPedanticTypes(false)
+            .setGenerateNulls(false)
+            .setGenerateMinimal(false)
+            .setGenerateAdditionalProperties(false)
+            .setUseRomanCharsOnly(false)
+            .setNonRequiredPropertyChance(0.5f)
+            .get();
+        Generator generator = new Generator(config, schemaStore, new Random(finalAttempt));
         Object generated = generator.generate(schema, 16);
 
         System.out.println(objectWriter.writeValueAsString(generated));

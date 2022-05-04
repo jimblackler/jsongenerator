@@ -3,8 +3,11 @@ plugins {
     id 'maven-publish'
 }
 
-sourceCompatibility = JavaVersion.VERSION_1_8
-targetCompatibility = JavaVersion.VERSION_1_8
+java {
+    toolchain {
+        languageVersion.set(JavaLanguageVersion.of(17))
+    }
+}
 
 repositories {
     mavenLocal()
@@ -32,7 +35,7 @@ afterEvaluate {
             release(MavenPublication) {
                 group = 'net.jimblackler'
                 artifactId = 'jsongenerator'
-                version = '0.4.5'
+                version = '0.4.6'
                 artifact(sourceJar)
                 from components.java
             }
