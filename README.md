@@ -44,4 +44,4 @@ The original [jsongenerator](https://github.com/jimblackler/jsongenerator) is li
 
 | Version | Description |
 | ------- | ----------- |
-| 1.0.0   | Publish to JitPack. |
+| 1.0.1   | Publish to JitPack. |
