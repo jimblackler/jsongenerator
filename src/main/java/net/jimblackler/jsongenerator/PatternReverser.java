@@ -1,6 +1,7 @@
 package net.jimblackler.jsongenerator;
 
-import static net.jimblackler.jsonschemafriend.CacheLoader.load;
+import net.jimblackler.jsonschemafriend.CacheLoader;
+
 import static net.jimblackler.jsonschemafriend.StreamUtils.streamToString;
 
 import java.io.IOException;
@@ -16,7 +17,7 @@ public class PatternReverser {
     if (scriptEngine == null) {
       throw new IllegalStateException("Could not initialize script engine");
     }
-    String randexp_js = load(
+    String randexp_js = new CacheLoader().load(
         URI.create("https://raw.githubusercontent.com/fent/randexp.js/master/build/randexp.min.js"),
         true);
     String random_js = streamToString(PatternReverser.class.getResourceAsStream("/random.js"));

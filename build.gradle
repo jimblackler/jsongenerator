@@ -20,7 +20,7 @@ repositories {
 dependencies {
     implementation 'com.fasterxml.jackson.core:jackson-databind:2.12.5'
     implementation 'cat.inspiracio:rhino-js-engine:1.7.10'
-    implementation 'net.jimblackler.jsonschemafriend:core:0.11.1'
+    implementation 'net.jimblackler.jsonschemafriend:core:0.12.1'
     testImplementation 'org.junit.jupiter:junit-jupiter-api:5.8.0'
 }
 
@@ -35,7 +35,7 @@ afterEvaluate {
             release(MavenPublication) {
                 group = 'net.jimblackler'
                 artifactId = 'jsongenerator'
-                version = '0.4.6'
+                version = '0.4.7'
                 artifact(sourceJar)
                 from components.java
             }
